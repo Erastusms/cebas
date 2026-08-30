@@ -1,0 +1,124 @@
+﻿version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cebas-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cebas_db}
+      POSTGRES_USER: ${POSTGRES_USER:-cebas_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cebas_secure_dev_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cebas_admin} -d ${POSTGRES_DB:-cebas_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - cebas-network
+
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.22.1
+    container_name: cebas-pgbouncer
+    restart: unless-stopped
+    environment:
+      DB_USER: ${POSTGRES_USER:-cebas_admin}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-cebas_secure_dev_password}
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB:-cebas_db}
+      POOL_MODE: ${PGBOUNCER_POOL_MODE:-transaction}
+      MAX_CLIENT_CONN: ${PGBOUNCER_MAX_CLIENT_CONN:-100}
+      DEFAULT_POOL_SIZE: ${PGBOUNCER_DEFAULT_POOL_SIZE:-20}
+      MIN_POOL_SIZE: "5"
+      RESERVE_POOL_SIZE: "5"
+      AUTH_TYPE: "trust"
+      ADMIN_USERS: ${POSTGRES_USER:-cebas_admin}
+    ports:
+      - "${PGBOUNCER_PORT:-6432}:5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U ${POSTGRES_USER:-cebas_admin} -d ${POSTGRES_DB:-cebas_db} || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - cebas-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: cebas-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 3s
+    networks:
+      - cebas-network
+
+  minio:
+    image: minio/minio:latest
+    container_name: cebas-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-cebas_minio_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-cebas_minio_secure_password}
+    ports:
+      - "9000:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "mc ready local || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - cebas-network
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: cebas-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set local http://minio:9000 ${MINIO_ACCESS_KEY:-cebas_minio_admin} ${MINIO_SECRET_KEY:-cebas_minio_secure_password};
+      /usr/bin/mc mb --ignore-existing local/${MINIO_BUCKET:-cebas-media};
+      /usr/bin/mc anonymous set download local/${MINIO_BUCKET:-cebas-media};
+      exit 0;
+      "
+    networks:
+      - cebas-network
+
+volumes:
+  postgres_data:
+    name: cebas_postgres_data
+  redis_data:
+    name: cebas_redis_data
+  minio_data:
+    name: cebas_minio_data
+
+networks:
+  cebas-network:
+    name: cebas-network
+    driver: bridge
