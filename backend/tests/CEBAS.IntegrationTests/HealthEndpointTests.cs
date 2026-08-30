@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -7,6 +7,7 @@ using CEBAS.Application.Common;
 
 namespace CEBAS.IntegrationTests;
 
+[Collection("IntegrationTests")]
 public class HealthEndpointTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;

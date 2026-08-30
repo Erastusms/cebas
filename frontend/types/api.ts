@@ -1,1 +1,3 @@
-export type { ApiResponse, ProblemDetails, RequestOptions } from "../lib/api/types";
+﻿export type { ApiResponse, ProblemDetails, RequestOptions, CursorPagination } from "../lib/api/types";
+export type { User, RegisterRequest, LoginRequest } from "./auth";
+export type { UserProfile, UserProfileStats, UpdateProfileRequest, SessionItem } from "./user";

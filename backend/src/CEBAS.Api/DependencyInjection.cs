@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi;
 using CEBAS.Api.Configuration;
@@ -45,7 +45,23 @@ public static class DependencyInjection
             });
         });
 
-        // 3. Swagger / OpenAPI Documentation
+        // 3. Authentication & Authorization
+        services.AddHttpContextAccessor();
+        services.AddScoped<CEBAS.Application.Abstractions.ICurrentUser, Services.CurrentUser>();
+        services.AddScoped<Services.ICookieService, Services.CookieService>();
+
+        services.AddAuthentication(options =>
+        {
+            options.DefaultScheme = Authentication.CookieSessionAuthenticationHandler.SchemeName;
+            options.DefaultAuthenticateScheme = Authentication.CookieSessionAuthenticationHandler.SchemeName;
+            options.DefaultChallengeScheme = Authentication.CookieSessionAuthenticationHandler.SchemeName;
+        })
+        .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, Authentication.CookieSessionAuthenticationHandler>(
+            Authentication.CookieSessionAuthenticationHandler.SchemeName, _ => { });
+
+        services.AddAuthorization();
+
+        // 4. Swagger / OpenAPI Documentation
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
         {
@@ -68,6 +84,17 @@ public static class DependencyInjection
                 options.IncludeXmlComments(xmlPath);
             }
         });
+
+        // 5. MediatR CQRS & Pipeline Behaviors
+        services.AddMediatR(cfg =>
+        {
+            cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly);
+            cfg.AddBehavior(typeof(MediatR.IPipelineBehavior<,>), typeof(Common.Behaviors.LoggingBehavior<,>));
+            cfg.AddBehavior(typeof(MediatR.IPipelineBehavior<,>), typeof(Common.Behaviors.ValidationBehavior<,>));
+        });
+
+        // 6. FluentValidation
+        FluentValidation.ServiceCollectionExtensions.AddValidatorsFromAssembly(services, typeof(DependencyInjection).Assembly);
 
         return services;
     }

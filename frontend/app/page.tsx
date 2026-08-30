@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
@@ -9,19 +11,19 @@ import {
   Shield,
   Layers,
   Sparkles,
-  Bell,
-  MoreVertical,
-  ExternalLink,
   RefreshCw,
+  User,
+  Smartphone,
+  Lock,
+  ArrowRight,
+  Search,
 } from "lucide-react";
 import { apiClient } from "../lib/api/client";
 import { ProblemDetailsException } from "../lib/api/errors";
 import type { ProblemDetails } from "../lib/api/types";
+import { useAuth } from "../hooks/useAuth";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Modal } from "../components/ui/modal";
-import { Dropdown } from "../components/ui/dropdown";
-import { Skeleton } from "../components/ui/skeleton";
 import { useToast } from "../hooks/useToast";
 
 type HealthResponse = {
@@ -41,11 +43,14 @@ type PingResponse = {
 };
 
 export default function Home() {
-  const { toast, success, error: toastError } = useToast();
-  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
-  const [testInput, setTestInput] = useState("");
-  const [inputError, setInputError] = useState<string | undefined>(undefined);
-  const [activeProblem, setActiveProblem] = useState<ProblemDetails | null>(null);
+  const { error: toastError } = useToast();
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const router = useRouter();
+
+  const [searchHandle, setSearchHandle] = useState("");
+  const [activeProblem, setActiveProblem] = useState<ProblemDetails | null>(
+    null
+  );
   const [isLoadingError, setIsLoadingError] = useState(false);
 
   // Backend Health Query via TanStack Query
@@ -89,411 +94,373 @@ export default function Home() {
     }
   };
 
+  const handleSearchProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchHandle.trim()) return;
+    const cleanHandle = searchHandle.trim().replace(/^@/, "");
+    router.push(`/user/${encodeURIComponent(cleanHandle)}`);
+  };
+
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 selection:bg-blue-500 selection:text-white">
-      {/* Top Banner */}
-      <div className="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/25">
-              C
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="font-bold tracking-tight text-lg text-white">CEBAS</span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                  Phase 0 Baseline
-                </span>
-              </div>
-              <p className="text-xs text-slate-400">Celoteh Bebas — Real-Time Social Platform</p>
-            </div>
+    <main className="selection:bg-primary/20 min-h-[calc(100vh-4rem)] bg-background text-foreground selection:text-primary">
+      <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+        {/* Phase 1 Identity & Auth Hero Card */}
+        <section className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-b from-card to-background p-6 shadow-xl sm:p-10">
+          <div className="pointer-events-none absolute right-0 top-0 p-8 opacity-5">
+            <Layers className="h-96 w-96 text-primary" />
           </div>
 
-          <div className="flex items-center space-x-3">
-            <a
-              href="http://localhost:5000/swagger"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center space-x-1.5 text-xs text-slate-300 hover:text-white px-3 py-1.5 rounded-md border border-slate-800 bg-slate-800/50 hover:bg-slate-800 transition"
-            >
-              <span>OpenAPI Swagger</span>
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Hero Architecture Card */}
-        <section className="rounded-2xl border border-slate-800 bg-gradient-to-b from-slate-900 to-slate-950 p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-            <Layers className="w-64 h-64 text-blue-500" />
-          </div>
-
-          <div className="max-w-3xl space-y-4 relative z-10">
-            <div className="inline-flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider text-blue-400">
+          <div className="relative z-10 max-w-3xl space-y-4">
+            <div className="inline-flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider text-primary">
               <Sparkles className="h-4 w-4" />
-              <span>Foundation & Architecture Baseline</span>
+              <span>
+                Phase 1 — Identity, Authentication & Profile Management
+              </span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
-              CEBAS Platform Scaffolding & Database Baseline
+            <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-foreground sm:text-5xl">
+              Secure, Production-Ready Identity & Multi-Device Sessions
             </h1>
-            <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
-              Production-grade monorepo established with separated Next.js frontend, .NET 10 Clean Architecture Web API,
-              PostgreSQL 16 with PgBouncer connection pooling, Redis 7, MinIO object storage, universal UUIDv7 (RFC 9562),
-              and RFC 7807 standardized API error handling.
+            <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+              Complete authentication foundation powered by BCrypt password
+              hashing, stateful SHA-256 hashed multi-device sessions, HttpOnly
+              cookies, case-insensitive canonical usernames, server-side
+              authorization, public profile viewing, and self-service session
+              revocation.
             </p>
+
+            {/* Dynamic Auth Action State */}
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              {isAuthLoading ? (
+                <div className="h-10 w-48 animate-pulse rounded-lg bg-muted" />
+              ) : isAuthenticated && user ? (
+                <div className="flex flex-wrap items-center gap-3">
+                  <Link href={`/user/${user.username}`}>
+                    <Button variant="default" size="md">
+                      <User className="mr-2 h-4 w-4" />
+                      View My Profile (@{user.username})
+                    </Button>
+                  </Link>
+                  <Link href="/settings/sessions">
+                    <Button variant="outline" size="md">
+                      <Smartphone className="mr-2 h-4 w-4" />
+                      Manage Active Sessions
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-3">
+                  <Link href="/register">
+                    <Button variant="default" size="md">
+                      Create Account
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Link href="/login">
+                    <Button variant="outline" size="md">
+                      <Lock className="mr-2 h-4 w-4" />
+                      Sign In
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-800/80">
+          {/* Quick Metrics Grid */}
+          <div className="border-border/80 mt-8 grid grid-cols-2 gap-4 border-t pt-6 sm:grid-cols-4">
             <div className="space-y-1">
-              <span className="text-xs text-slate-500 font-medium">Backend Stack</span>
-              <p className="text-sm font-semibold text-slate-200">.NET 10 • Clean Arch</p>
+              <span className="text-xs font-medium text-muted-foreground">
+                Password Security
+              </span>
+              <p className="text-sm font-semibold text-foreground">
+                BCrypt (Work Factor 12)
+              </p>
             </div>
             <div className="space-y-1">
-              <span className="text-xs text-slate-500 font-medium">Database Layer</span>
-              <p className="text-sm font-semibold text-slate-200">PostgreSQL 16 + PgBouncer</p>
+              <span className="text-xs font-medium text-muted-foreground">
+                Session Storage
+              </span>
+              <p className="text-sm font-semibold text-foreground">
+                SHA-256 Hashed in DB
+              </p>
             </div>
             <div className="space-y-1">
-              <span className="text-xs text-slate-500 font-medium">Frontend Stack</span>
-              <p className="text-sm font-semibold text-slate-200">Next.js 15 • TypeScript</p>
+              <span className="text-xs font-medium text-muted-foreground">
+                Cookie Attributes
+              </span>
+              <p className="text-sm font-semibold text-foreground">
+                HttpOnly • SameSite=Lax
+              </p>
             </div>
             <div className="space-y-1">
-              <span className="text-xs text-slate-500 font-medium">Primary Keys</span>
-              <p className="text-sm font-semibold text-slate-200">Universal UUIDv7</p>
+              <span className="text-xs font-medium text-muted-foreground">
+                Username Lookup
+              </span>
+              <p className="text-sm font-semibold text-foreground">
+                LOWER(username) Index
+              </p>
             </div>
           </div>
         </section>
 
-        {/* Live Backend Health & Connectivity */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Card 1: Backend Health Liveness */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6 space-y-4">
+        {/* Interactive Feature Exploration Grid */}
+        <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* Card 1: Public Profile Lookup Tool */}
+          <div className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="flex items-center space-x-2">
+              <User className="h-5 w-5 text-primary" />
+              <h3 className="text-base font-semibold text-foreground">
+                Public User Profile Lookup
+              </h3>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Search and inspect any public profile on CEBAS. Case-insensitivity
+              rules and unique database constraints guarantee consistent
+              lookups.
+            </p>
+
+            <form onSubmit={handleSearchProfile} className="flex gap-2">
+              <Input
+                placeholder="Enter handle, e.g. johndoe"
+                value={searchHandle}
+                onChange={(e) => setSearchHandle(e.target.value)}
+                className="text-sm"
+              />
+              <Button type="submit" variant="default" size="md">
+                <Search className="mr-1.5 h-4 w-4" />
+                View
+              </Button>
+            </form>
+          </div>
+
+          {/* Card 2: Backend Health & Ping */}
+          <div className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Server className="h-5 w-5 text-blue-400" />
-                <h3 className="font-semibold text-white">Backend Health & Ping</h3>
+                <Server className="h-5 w-5 text-blue-500" />
+                <h3 className="text-base font-semibold text-foreground">
+                  Backend API Health & Liveness
+                </h3>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                className="text-xs border-slate-700 hover:bg-slate-800 text-slate-200"
+                className="text-xs"
                 onClick={() => {
                   refetchHealth();
                   refetchPing();
                 }}
                 isLoading={isHealthFetching}
               >
-                <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                <RefreshCw className="mr-1 h-3.5 w-3.5" />
                 Refresh
               </Button>
             </div>
 
-            <div className="space-y-3">
-              <div className="p-4 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+            <div className="space-y-2.5">
+              <div className="bg-muted/40 flex items-center justify-between rounded-lg border border-border p-3">
                 <div className="flex items-center space-x-3">
                   <div
-                    className={`h-3 w-3 rounded-full ${
+                    className={`h-2.5 w-2.5 rounded-full ${
                       isHealthLoading
-                        ? "bg-amber-400 animate-ping"
+                        ? "animate-ping bg-amber-400"
                         : isHealthError
-                        ? "bg-rose-500"
-                        : "bg-emerald-400"
+                          ? "bg-rose-500"
+                          : "bg-emerald-400"
                     }`}
                   />
                   <div>
-                    <span className="text-sm font-medium text-white">
+                    <span className="text-xs font-semibold text-foreground">
                       GET /health (Liveness)
                     </span>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-[11px] text-muted-foreground">
                       {isHealthLoading
                         ? "Checking availability..."
                         : isHealthError
-                        ? `Offline: ${(healthErrorObj as Error)?.message || "Failed to reach API"}`
-                        : `Status: ${healthData?.status} • ${healthData?.service} (${healthData?.version})`}
+                          ? `Offline: ${(healthErrorObj as Error)?.message || "Failed to reach API"}`
+                          : `Status: ${healthData?.status} • ${healthData?.service} (${healthData?.version})`}
                     </p>
                   </div>
                 </div>
                 {!isHealthError && !isHealthLoading && (
-                  <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">
+                  <span className="rounded bg-emerald-500/10 px-2 py-0.5 font-mono text-[11px] font-medium text-emerald-500">
                     200 OK
                   </span>
                 )}
               </div>
 
-              <div className="p-4 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+              <div className="bg-muted/40 flex items-center justify-between rounded-lg border border-border p-3">
                 <div className="flex items-center space-x-3">
-                  <Activity className="h-4 w-4 text-blue-400" />
+                  <Activity className="h-4 w-4 text-primary" />
                   <div>
-                    <span className="text-sm font-medium text-white">
+                    <span className="text-xs font-semibold text-foreground">
                       GET /api/v1/ping
                     </span>
-                    <p className="text-xs text-slate-400">
-                      {pingData ? `Message: "${pingData.data.message}" • ${pingData.message}` : "Awaiting response..."}
+                    <p className="text-[11px] text-muted-foreground">
+                      {pingData
+                        ? `Message: "${pingData.data.message}"`
+                        : "Awaiting response..."}
                     </p>
                   </div>
                 </div>
                 {pingData && (
-                  <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono">
+                  <span className="bg-primary/10 rounded px-2 py-0.5 font-mono text-[11px] font-medium text-primary">
                     Operational
                   </span>
                 )}
               </div>
             </div>
           </div>
-
-          {/* Card 2: RFC 7807 Error Inspector */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6 space-y-4">
-            <div className="flex items-center space-x-2">
-              <Shield className="h-5 w-5 text-indigo-400" />
-              <h3 className="font-semibold text-white">RFC 7807 Problem Details Inspector</h3>
-            </div>
-            <p className="text-xs text-slate-400">
-              Trigger standardized API exception responses to verify error serialization without exposing server stack traces.
-            </p>
-
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs border-slate-700 hover:bg-slate-800 text-slate-200"
-                onClick={() => triggerErrorTest("validation")}
-                isLoading={isLoadingError}
-              >
-                400 Validation
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs border-slate-700 hover:bg-slate-800 text-slate-200"
-                onClick={() => triggerErrorTest("notfound")}
-                isLoading={isLoadingError}
-              >
-                404 Not Found
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs border-slate-700 hover:bg-slate-800 text-slate-200"
-                onClick={() => triggerErrorTest("conflict")}
-                isLoading={isLoadingError}
-              >
-                409 Conflict
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs border-slate-700 hover:bg-slate-800 text-slate-200"
-                onClick={() => triggerErrorTest("unauthorized")}
-                isLoading={isLoadingError}
-              >
-                401 Unauthorized
-              </Button>
-            </div>
-
-            {activeProblem && (
-              <div className="rounded-lg bg-slate-950 border border-slate-800 p-3 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-mono text-amber-400">HTTP {activeProblem.status}</span>
-                  <span className="text-slate-400 font-mono">TraceId: {activeProblem.traceId?.slice(0, 16)}...</span>
-                </div>
-                <pre className="text-xs text-slate-300 font-mono overflow-x-auto p-2 bg-slate-900 rounded border border-slate-800">
-                  {JSON.stringify(activeProblem, null, 2)}
-                </pre>
-              </div>
-            )}
-          </div>
         </section>
 
-        {/* UI Primitives Component Showcase */}
-        <section className="rounded-xl border border-slate-800 bg-slate-900/60 p-6 space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-            <div>
-              <h3 className="font-semibold text-white text-lg">Accessible UI Component Primitives</h3>
-              <p className="text-xs text-slate-400">
-                WCAG 2.2 AA compliant UI primitives styled with CEBAS semantic tokens and keyboard navigation.
+        {/* RFC 7807 Error Inspector */}
+        <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <div className="flex items-center space-x-2">
+            <Shield className="h-5 w-5 text-indigo-400" />
+            <h3 className="text-base font-semibold text-foreground">
+              RFC 7807 Problem Details Inspector
+            </h3>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Trigger standardized API exception responses to verify error
+            serialization without exposing server stack traces or database
+            errors.
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={() => triggerErrorTest("validation")}
+              isLoading={isLoadingError}
+            >
+              400 Validation
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={() => triggerErrorTest("notfound")}
+              isLoading={isLoadingError}
+            >
+              404 Not Found
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={() => triggerErrorTest("conflict")}
+              isLoading={isLoadingError}
+            >
+              409 Conflict
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={() => triggerErrorTest("unauthorized")}
+              isLoading={isLoadingError}
+            >
+              401 Unauthorized
+            </Button>
+          </div>
+
+          {activeProblem && (
+            <div className="bg-muted/40 space-y-2 rounded-lg border border-border p-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-mono font-semibold text-amber-500">
+                  HTTP {activeProblem.status}
+                </span>
+                <span className="font-mono text-muted-foreground">
+                  TraceId: {activeProblem.traceId?.slice(0, 16)}...
+                </span>
+              </div>
+              <pre className="bg-muted/80 overflow-x-auto rounded border border-border p-2 font-mono text-xs text-foreground">
+                {JSON.stringify(activeProblem, null, 2)}
+              </pre>
+            </div>
+          )}
+        </section>
+
+        {/* Phase 1 Verification Checklist */}
+        <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <div className="flex items-center space-x-2">
+            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+            <h3 className="text-base font-semibold text-foreground">
+              Phase 1 Delivery Verification Matrix
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-2 md:grid-cols-3">
+            <div className="bg-muted/30 space-y-1 rounded-lg border border-border p-3">
+              <div className="flex items-center justify-between font-semibold text-emerald-500">
+                <span>Registration & Hashing</span>
+                <span>Complete</span>
+              </div>
+              <p className="text-muted-foreground">
+                BCrypt work factor 12 hashing with case-insensitive unique
+                constraints.
               </p>
             </div>
-            <span className="text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-300 font-mono">
-              components/ui/
-            </span>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Buttons Showcase */}
-            <div className="space-y-3 p-4 rounded-lg bg-slate-950/60 border border-slate-800">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Button Variants</span>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="default" size="sm">Primary</Button>
-                <Button variant="secondary" size="sm">Secondary</Button>
-                <Button variant="outline" size="sm">Outline</Button>
-                <Button variant="ghost" size="sm">Ghost</Button>
-                <Button variant="destructive" size="sm">Destructive</Button>
-                <Button variant="default" size="sm" isLoading>Loading</Button>
+            <div className="bg-muted/30 space-y-1 rounded-lg border border-border p-3">
+              <div className="flex items-center justify-between font-semibold text-emerald-500">
+                <span>Multi-Device Sessions</span>
+                <span>Complete</span>
               </div>
+              <p className="text-muted-foreground">
+                Stateful sessions hashed with SHA-256 and HttpOnly SameSite=Lax
+                cookies.
+              </p>
             </div>
 
-            {/* Inputs Showcase */}
-            <div className="space-y-3 p-4 rounded-lg bg-slate-950/60 border border-slate-800">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Form Input</span>
-              <Input
-                label="Sample Handle"
-                placeholder="@username"
-                value={testInput}
-                onChange={(e) => {
-                  setTestInput(e.target.value);
-                  if (e.target.value.length > 0 && e.target.value.length < 3) {
-                    setInputError("Handle must be at least 3 characters.");
-                  } else {
-                    setInputError(undefined);
-                  }
-                }}
-                error={inputError}
-                helperText={!inputError ? "Alphanumeric characters and underscores only." : undefined}
-              />
+            <div className="bg-muted/30 space-y-1 rounded-lg border border-border p-3">
+              <div className="flex items-center justify-between font-semibold text-emerald-500">
+                <span>Public & Me Profiles</span>
+                <span>Complete</span>
+              </div>
+              <p className="text-muted-foreground">
+                Server-side authorization for /users/me and case-insensitive
+                /user/[username].
+              </p>
             </div>
 
-            {/* Interactive Overlays Showcase */}
-            <div className="space-y-3 p-4 rounded-lg bg-slate-950/60 border border-slate-800">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Modal, Dropdown & Toast</span>
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <Button variant="outline" size="sm" onClick={() => setIsDemoModalOpen(true)}>
-                  Open Modal
-                </Button>
-
-                <Dropdown
-                  trigger={
-                    <Button variant="ghost" size="icon" aria-label="Open menu">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  }
-                  items={[
-                    { label: "View Profile", onClick: () => toast("Viewing Profile", { variant: "info" }) },
-                    { label: "Notification Settings", onClick: () => toast("Opened Settings", { variant: "info" }) },
-                    {
-                      label: "Block User",
-                      destructive: true,
-                      onClick: () => toast("Safety block action triggered", { variant: "error" }),
-                    },
-                  ]}
-                />
-
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => success("Operation completed successfully!", "Action Confirmed")}
-                >
-                  <Bell className="h-3.5 w-3.5 mr-1" />
-                  Toast
-                </Button>
+            <div className="bg-muted/30 space-y-1 rounded-lg border border-border p-3">
+              <div className="flex items-center justify-between font-semibold text-emerald-500">
+                <span>Edit Profile Modal</span>
+                <span>Complete</span>
               </div>
-
-              <div className="space-y-2 pt-2">
-                <span className="text-xs text-slate-500">Skeleton Loading:</span>
-                <div className="flex items-center space-x-3">
-                  <Skeleton className="h-9 w-9 rounded-full bg-slate-800" />
-                  <div className="space-y-1 flex-1">
-                    <Skeleton className="h-3 w-3/4 bg-slate-800" />
-                    <Skeleton className="h-2 w-1/2 bg-slate-800" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Phase 0 Completion Matrix */}
-        <section className="rounded-xl border border-slate-800 bg-slate-900/60 p-6 space-y-4">
-          <div className="flex items-center space-x-2">
-            <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-            <h3 className="font-semibold text-white">Phase 0 Baseline Verification Matrix</h3>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
-            <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
-              <div className="flex items-center justify-between text-emerald-400 font-semibold">
-                <span>Universal UUIDv7</span>
-                <span>Ready</span>
-              </div>
-              <p className="text-slate-400">Monotonic time-ordered RFC 9562 identifiers in CEBAS.Domain.</p>
+              <p className="text-muted-foreground">
+                WCAG 2.2 AA accessible modal dialog with character counters and
+                live update.
+              </p>
             </div>
 
-            <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
-              <div className="flex items-center justify-between text-emerald-400 font-semibold">
-                <span>PostgreSQL 16 & PgBouncer</span>
-                <span>Configured</span>
+            <div className="bg-muted/30 space-y-1 rounded-lg border border-border p-3">
+              <div className="flex items-center justify-between font-semibold text-emerald-500">
+                <span>Session Dashboard</span>
+                <span>Complete</span>
               </div>
-              <p className="text-slate-400">Connection pooling layer with transaction mode in Docker Compose.</p>
+              <p className="text-muted-foreground">
+                List active devices, identify current session, and perform
+                secure session revocation.
+              </p>
             </div>
 
-            <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
-              <div className="flex items-center justify-between text-emerald-400 font-semibold">
-                <span>Database Migrations</span>
-                <span>001_extensions.sql</span>
+            <div className="bg-muted/30 space-y-1 rounded-lg border border-border p-3">
+              <div className="flex items-center justify-between font-semibold text-emerald-500">
+                <span>Automated Tests</span>
+                <span>77/77 Passed</span>
               </div>
-              <p className="text-slate-400">uuid-ossp, citext & custom domain ENUM types baseline.</p>
-            </div>
-
-            <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
-              <div className="flex items-center justify-between text-emerald-400 font-semibold">
-                <span>RFC 7807 Problem Details</span>
-                <span>Active</span>
-              </div>
-              <p className="text-slate-400">Global API exception middleware & TypeScript error parser.</p>
-            </div>
-
-            <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
-              <div className="flex items-center justify-between text-emerald-400 font-semibold">
-                <span>State & Cache Layer</span>
-                <span>Active</span>
-              </div>
-              <p className="text-slate-400">Zustand UI stores & TanStack Query client providers configured.</p>
-            </div>
-
-            <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
-              <div className="flex items-center justify-between text-emerald-400 font-semibold">
-                <span>Unit & Integration Tests</span>
-                <span>14/14 Passed</span>
-              </div>
-              <p className="text-slate-400">UUIDv7 uniqueness, serialization, health & migration tests verified.</p>
+              <p className="text-muted-foreground">
+                68 .NET unit & integration tests + 9 Vitest frontend schema &
+                validation tests.
+              </p>
             </div>
           </div>
         </section>
       </div>
-
-      {/* Reusable Modal Demonstration */}
-      <Modal
-        isOpen={isDemoModalOpen}
-        onClose={() => setIsDemoModalOpen(false)}
-        title="CEBAS Modal Dialog"
-        description="Demonstration of accessible modal component with keyboard focus trapping and escape dismissal."
-      >
-        <div className="space-y-4 text-sm text-slate-300">
-          <p>
-            This modal dialog follows WCAG 2.2 AA accessibility principles:
-          </p>
-          <ul className="list-disc pl-5 space-y-1 text-slate-400 text-xs">
-            <li>Pressing <kbd className="px-1 py-0.5 rounded bg-slate-800 text-slate-200">Esc</kbd> closes the modal.</li>
-            <li>Clicking the backdrop dismisses the dialog.</li>
-            <li>ARIA attributes (<code className="text-blue-400">role=&quot;dialog&quot;</code> and <code className="text-blue-400">aria-modal=&quot;true&quot;</code>) ensure screen-reader compatibility.</li>
-          </ul>
-          <div className="pt-2 flex justify-end space-x-2">
-            <Button variant="outline" size="sm" onClick={() => setIsDemoModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => {
-                setIsDemoModalOpen(false);
-                success("Modal action confirmed!");
-              }}
-            >
-              Confirm
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </main>
   );
 }

@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -19,24 +19,30 @@ public class DatabaseMigrator
         _logger = logger;
     }
 
-    public async Task MigrateAsync(string? migrationsSqlPath = null, CancellationToken cancellationToken = default)
+    public async Task MigrateAsync(string? migrationsSqlDirectory = null, CancellationToken cancellationToken = default)
     {
         try
         {
             _logger.LogInformation("Starting database initialization and migration sequence...");
 
-            // Execute raw SQL extensions script if available
-            string sqlScriptPath = migrationsSqlPath ?? FindSqlScriptPath();
-            if (File.Exists(sqlScriptPath))
+            // Discover all SQL migration scripts in order
+            var sqlFiles = migrationsSqlDirectory != null && Directory.Exists(migrationsSqlDirectory)
+                ? Directory.GetFiles(migrationsSqlDirectory, "*.sql").OrderBy(f => Path.GetFileName(f)).ToList()
+                : FindSqlScriptPaths();
+
+            if (sqlFiles.Count > 0)
             {
-                _logger.LogInformation("Executing baseline migration script from: {Path}", sqlScriptPath);
-                var sql = await File.ReadAllTextAsync(sqlScriptPath, cancellationToken);
-                await _dbContext.Database.ExecuteSqlRawAsync(sql, cancellationToken);
-                _logger.LogInformation("Baseline migration script executed successfully.");
+                foreach (var sqlPath in sqlFiles)
+                {
+                    _logger.LogInformation("Executing migration script from: {Path}", sqlPath);
+                    var sql = await File.ReadAllTextAsync(sqlPath, cancellationToken);
+                    await _dbContext.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+                    _logger.LogInformation("Migration script {File} executed successfully.", Path.GetFileName(sqlPath));
+                }
             }
             else
             {
-                _logger.LogWarning("Migration script not found at path: {Path}. Attempting EF migration check...", sqlScriptPath);
+                _logger.LogWarning("No SQL migration scripts found. Attempting EF migration check...");
             }
 
             // If EF Core migrations are configured in future phases, apply them
@@ -57,28 +63,32 @@ public class DatabaseMigrator
         }
     }
 
-    private static string FindSqlScriptPath()
+    private static List<string> FindSqlScriptPaths()
     {
-        // Try multiple probe paths for development, docker, and test runners
-        var probePaths = new[]
+        // Try multiple probe directory paths for development, docker, and test runners
+        var probeDirs = new[]
         {
-            Path.Combine(AppContext.BaseDirectory, "migrations", "sql", "001_extensions.sql"),
-            Path.Combine(Directory.GetCurrentDirectory(), "migrations", "sql", "001_extensions.sql"),
-            Path.Combine(Directory.GetCurrentDirectory(), "..", "migrations", "sql", "001_extensions.sql"),
-            Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "migrations", "sql", "001_extensions.sql"),
-            Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "migrations", "sql", "001_extensions.sql"),
-            Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "..", "migrations", "sql", "001_extensions.sql"),
-            Path.Combine(Directory.GetCurrentDirectory(), "backend", "migrations", "sql", "001_extensions.sql")
+            Path.Combine(AppContext.BaseDirectory, "migrations", "sql"),
+            Path.Combine(Directory.GetCurrentDirectory(), "migrations", "sql"),
+            Path.Combine(Directory.GetCurrentDirectory(), "..", "migrations", "sql"),
+            Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "migrations", "sql"),
+            Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "migrations", "sql"),
+            Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "..", "migrations", "sql"),
+            Path.Combine(Directory.GetCurrentDirectory(), "backend", "migrations", "sql")
         };
 
-        foreach (var path in probePaths)
+        foreach (var dir in probeDirs)
         {
-            if (File.Exists(path))
+            if (Directory.Exists(dir))
             {
-                return Path.GetFullPath(path);
+                var files = Directory.GetFiles(dir, "*.sql").OrderBy(f => Path.GetFileName(f)).ToList();
+                if (files.Count > 0)
+                {
+                    return files;
+                }
             }
         }
 
-        return probePaths[0];
+        return new List<string>();
     }
 }

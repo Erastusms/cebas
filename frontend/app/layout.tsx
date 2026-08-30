@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "../providers/query-provider";
 import { ToastContainer } from "../components/ui/toast";
+import { Navbar } from "../components/layout/Navbar";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="en" className={inter.variable}>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased selection:bg-primary/20 selection:text-primary">
         <QueryProvider>
+          <Navbar />
           {children}
           <ToastContainer />
         </QueryProvider>

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -15,6 +16,11 @@ export interface ModalProps {
 
 export function Modal({ isOpen, onClose, title, description, children, className }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -34,11 +40,11 @@ export function Modal({ isOpen, onClose, title, description, children, className
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
@@ -50,7 +56,7 @@ export function Modal({ isOpen, onClose, title, description, children, className
       <div
         ref={modalRef}
         className={cn(
-          "w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-xl text-card-foreground",
+          "w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl text-card-foreground",
           className
         )}
       >
@@ -77,6 +83,7 @@ export function Modal({ isOpen, onClose, title, description, children, className
 
         <div className="py-4">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
@@ -137,7 +137,9 @@ public class ExceptionHandlingMiddleware
                     Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1",
                     Title = "Internal Server Error",
                     Status = StatusCodes.Status500InternalServerError,
-                    Detail = _env.IsDevelopment() ? exception.Message : "An unexpected server error occurred. Please contact support with the trace identifier.",
+                    Detail = _env.IsDevelopment()
+                        ? (exception.InnerException != null ? $"{exception.Message} ---> {exception.InnerException.Message}" : exception.Message)
+                        : "An unexpected server error occurred. Please contact support with the trace identifier.",
                     Instance = context.Request.Path,
                     TraceId = traceId
                 }

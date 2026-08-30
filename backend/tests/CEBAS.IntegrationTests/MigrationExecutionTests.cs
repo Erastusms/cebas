@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Xunit;
 
 namespace CEBAS.IntegrationTests;
@@ -19,6 +19,36 @@ public class MigrationExecutionTests
         sqlContent.Should().Contain("media_type_enum");
         sqlContent.Should().Contain("media_status_enum");
         sqlContent.Should().Contain("notification_type_enum");
+    }
+
+    [Fact]
+    public void UsersMigrationScript_ShouldExistAndContainRequiredSqlDirectives()
+    {
+        string? foundPath = FindMigrationScript("002_users.sql");
+
+        foundPath.Should().NotBeNull("002_users.sql migration file must exist in backend/migrations/sql/");
+
+        var sqlContent = File.ReadAllText(foundPath!);
+        sqlContent.Should().Contain("CREATE TABLE IF NOT EXISTS users");
+        sqlContent.Should().Contain("password_hash");
+        sqlContent.Should().Contain("idx_users_username_lower");
+        sqlContent.Should().Contain("idx_users_email_lower");
+        sqlContent.Should().Contain("LOWER(username)");
+        sqlContent.Should().Contain("LOWER(email)");
+    }
+
+    [Fact]
+    public void SessionsMigrationScript_ShouldExistAndContainRequiredSqlDirectives()
+    {
+        string? foundPath = FindMigrationScript("004_sessions.sql");
+
+        foundPath.Should().NotBeNull("004_sessions.sql migration file must exist in backend/migrations/sql/");
+
+        var sqlContent = File.ReadAllText(foundPath!);
+        sqlContent.Should().Contain("CREATE TABLE IF NOT EXISTS sessions");
+        sqlContent.Should().Contain("token_hash");
+        sqlContent.Should().Contain("idx_sessions_token_hash");
+        sqlContent.Should().Contain("idx_sessions_user_id");
     }
 
     private static string? FindMigrationScript(string filename)

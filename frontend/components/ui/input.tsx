@@ -5,10 +5,11 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   label?: string;
   error?: string;
   helperText?: string;
+  endAdornment?: React.ReactNode;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, helperText, type = "text", id, ...props }, ref) => {
+  ({ className, label, error, helperText, endAdornment, type = "text", id, ...props }, ref) => {
     const generatedId = useId();
     const inputId = id ?? generatedId;
     const errorId = `${inputId}-error`;
@@ -21,19 +22,27 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {label}
           </label>
         )}
-        <input
-          id={inputId}
-          ref={ref}
-          type={type}
-          aria-invalid={!!error}
-          aria-describedby={error ? errorId : helperText ? helperId : undefined}
-          className={cn(
-            "flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-            error && "border-destructive focus-visible:ring-destructive",
-            className
+        <div className="relative flex items-center">
+          <input
+            id={inputId}
+            ref={ref}
+            type={type}
+            aria-invalid={!!error}
+            aria-describedby={error ? errorId : helperText ? helperId : undefined}
+            className={cn(
+              "flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+              endAdornment && "pr-10",
+              error && "border-destructive focus-visible:ring-destructive",
+              className
+            )}
+            {...props}
+          />
+          {endAdornment && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center text-muted-foreground hover:text-foreground">
+              {endAdornment}
+            </div>
           )}
-          {...props}
-        />
+        </div>
         {error ? (
           <p id={errorId} className="text-xs font-medium text-destructive">
             {error}

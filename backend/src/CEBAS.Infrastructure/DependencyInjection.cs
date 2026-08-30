@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -43,6 +43,7 @@ public static class DependencyInjection
 
         services.AddScoped<IDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
         services.AddScoped<DatabaseMigrator>();
+        services.AddScoped<DatabaseSeeder>();
 
         // 3. Redis ConnectionMultiplexer (Lazy / Resilient)
         services.AddSingleton<IConnectionMultiplexer>(sp =>
@@ -65,8 +66,14 @@ public static class DependencyInjection
             }
         });
 
-        // 4. Common Services
+        // 4. Common & Auth Services
         services.AddSingleton<IDateTimeProvider, DateTimeProvider>();
+        services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
+        services.AddSingleton<ISessionTokenService, SessionTokenService>();
+
+        // 5. Repositories
+        services.AddScoped<IUserRepository, Persistence.Repositories.UserRepository>();
+        services.AddScoped<ISessionRepository, Persistence.Repositories.SessionRepository>();
 
         return services;
     }

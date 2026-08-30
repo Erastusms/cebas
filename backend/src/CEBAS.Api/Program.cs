@@ -1,4 +1,4 @@
-﻿using Serilog;
+using Serilog;
 using Serilog.Events;
 using CEBAS.Api;
 using CEBAS.Api.Configuration;
@@ -37,7 +37,7 @@ try
 
     var app = builder.Build();
 
-    // 4. Auto-run Database Migrations / Extensions on Startup (Development & Testing)
+    // 4. Auto-run Database Migrations & Seeding on Startup (Development & Testing)
     if (app.Environment.IsDevelopment())
     {
         using var scope = app.Services.CreateScope();
@@ -45,10 +45,13 @@ try
         {
             var migrator = scope.ServiceProvider.GetRequiredService<DatabaseMigrator>();
             await migrator.MigrateAsync();
+
+            var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
+            await seeder.SeedAsync();
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Database auto-migration skipped on startup (DB might be offline or still starting up): {Message}", ex.Message);
+            Log.Warning(ex, "Database auto-migration/seed skipped on startup (DB might be offline or still starting up): {Message}", ex.Message);
         }
     }
 
@@ -68,6 +71,7 @@ try
 
     app.UseCors(CorsOptions.PolicyName);
     app.UseHttpsRedirection();
+    app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
 

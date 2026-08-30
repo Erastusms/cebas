@@ -1,4 +1,4 @@
-﻿-- ==============================================================================
+-- ==============================================================================
 -- CEBAS Database Migration: 001_extensions.sql
 -- Enables foundational PostgreSQL extensions and domain ENUM types
 -- ==============================================================================
@@ -30,5 +30,27 @@ BEGIN
             'USER_FOLLOWED',
             'USER_MENTIONED'
         );
+    END IF;
+END $$;
+
+-- 3. Implicit String Casts for PostgreSQL Enums
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_cast c 
+        JOIN pg_type s ON c.castsource = s.oid 
+        JOIN pg_type t ON c.casttarget = t.oid 
+        WHERE s.typname = 'varchar' AND t.typname = 'user_role_enum'
+    ) THEN
+        CREATE CAST (varchar AS user_role_enum) WITH INOUT AS IMPLICIT;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_cast c 
+        JOIN pg_type s ON c.castsource = s.oid 
+        JOIN pg_type t ON c.casttarget = t.oid 
+        WHERE s.typname = 'text' AND t.typname = 'user_role_enum'
+    ) THEN
+        CREATE CAST (text AS user_role_enum) WITH INOUT AS IMPLICIT;
     END IF;
 END $$;

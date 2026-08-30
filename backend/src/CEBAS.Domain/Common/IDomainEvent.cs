@@ -1,10 +1,11 @@
-﻿namespace CEBAS.Domain.Common;
+﻿using MediatR;
+
+namespace CEBAS.Domain.Common;
 
 /// <summary>
-/// Marker contract for domain events dispatched upon aggregate state transitions.
+/// Marker interface for in-process Domain Events implementing MediatR INotification.
 /// </summary>
-public interface IDomainEvent
+public interface IDomainEvent : INotification
 {
-    Guid EventId { get; }
-    DateTimeOffset OccurredOn { get; }
+    DateTimeOffset OccurredAt { get; }
 }
