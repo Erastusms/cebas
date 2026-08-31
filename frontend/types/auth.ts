@@ -1,10 +1,11 @@
-﻿export type User = {
+export type User = {
   id: string;
   username: string;
   email: string;
   displayName: string;
   bio?: string | null;
   avatarUrl?: string | null;
+  bannerUrl?: string | null;
   role: string;
   isVerified: boolean;
   createdAt: string;

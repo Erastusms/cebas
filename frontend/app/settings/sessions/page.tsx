@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
@@ -186,7 +186,7 @@ export default function SessionsDashboardPage() {
               : "This device will be immediately signed out and its authentication cookie invalidated."
           }
         >
-          <div className="space-y-4 pt-2">
+          <div className="p-6 space-y-4">
             <div className="flex items-start space-x-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs">
               <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
               <span>

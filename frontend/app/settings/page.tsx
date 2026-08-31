@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
@@ -45,15 +45,23 @@ export default function SettingsPage() {
               <div className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-6">
                 <div className="flex items-center justify-between pb-4 border-b border-border">
                   <div className="flex items-center space-x-3">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-xl font-bold text-primary-foreground">
-                      {user.displayName?.charAt(0).toUpperCase() || user.username.charAt(0).toUpperCase()}
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-xl font-bold text-primary-foreground overflow-hidden shadow-sm flex-shrink-0">
+                      {user.avatarUrl ? (
+                        <img
+                          src={user.avatarUrl}
+                          alt={user.displayName || user.username}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        user.displayName?.charAt(0).toUpperCase() || user.username.charAt(0).toUpperCase()
+                      )}
                     </div>
                     <div>
-                      <div className="flex items-center space-x-1.5">
+                      <div className="flex items-center space-x-1.5 leading-tight">
                         <h2 className="font-semibold text-lg text-foreground">{user.displayName}</h2>
                         {user.isVerified && <CheckCircle2 className="h-4 w-4 text-blue-500" />}
                       </div>
-                      <p className="text-xs text-muted-foreground">@{user.username}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">@{user.username}</p>
                     </div>
                   </div>
 

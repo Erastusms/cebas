@@ -1,12 +1,18 @@
 "use client";
 
 import React, { useState, use } from "react";
-import { Calendar, CheckCircle2, MessageSquare, Repeat2, Image as ImageIcon, Heart, UserX, Edit3 } from "lucide-react";
+import { Calendar, CheckCircle2, MessageSquare, Repeat2, Image as ImageIcon, Heart, UserX, Edit3, Camera } from "lucide-react";
 import { useProfile } from "../../../hooks/useProfile";
 import { useAuth } from "../../../hooks/useAuth";
 import { Button } from "../../../components/ui/button";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { EditProfileModal } from "../../../components/profile/EditProfileModal";
+import { FollowButton } from "../../../components/social/FollowButton";
+import { FollowStatusBadge } from "../../../components/social/FollowStatusBadge";
+import { UserActionMenu } from "../../../components/social/UserActionMenu";
+import { FollowListModal } from "../../../components/social/FollowListModal";
+import { BlockedProfileFallback } from "../../../components/social/BlockedProfileFallback";
+import { resolveBannerStyle } from "../../../lib/utils/gradients";
 
 interface ProfilePageProps {
   params: Promise<{
@@ -25,8 +31,19 @@ export default function UserProfilePage({ params }: ProfilePageProps) {
   const { user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("posts");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [followListModalState, setFollowListModalState] = useState<{
+    isOpen: boolean;
+    tab: "followers" | "following";
+  }>({
+    isOpen: false,
+    tab: "followers",
+  });
 
-  const isOwnProfile = !!(currentUser && profile && currentUser.username.toLowerCase() === profile.username.toLowerCase());
+  const isOwnProfile = !!(
+    currentUser &&
+    profile &&
+    currentUser.username.toLowerCase() === profile.username.toLowerCase()
+  );
 
   if (isLoading) {
     return (
@@ -48,6 +65,26 @@ export default function UserProfilePage({ params }: ProfilePageProps) {
           </div>
         </div>
       </main>
+    );
+  }
+
+  // Handle blocked profile states
+  if (profile?.relationship?.isBlocked) {
+    return (
+      <BlockedProfileFallback
+        targetUserId={profile.id}
+        targetUsername={profile.username}
+        isBlockedByMe={true}
+      />
+    );
+  }
+
+  if (profile?.relationship?.isBlockedBy) {
+    return (
+      <BlockedProfileFallback
+        targetUsername={username}
+        isBlockedByMe={false}
+      />
     );
   }
 
@@ -73,80 +110,128 @@ export default function UserProfilePage({ params }: ProfilePageProps) {
   return (
     <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
       {/* Profile Header Card */}
-      <section className="rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-sm space-y-6">
-        {/* Top bar with Avatar and Action Button */}
-        <div className="flex items-start justify-between">
-          <div className="relative">
-            <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-border bg-primary text-3xl font-extrabold text-primary-foreground shadow-lg shadow-primary/20 overflow-hidden">
-              {profile.avatarUrl ? (
-                <img
-                  src={profile.avatarUrl}
-                  alt={profile.displayName || profile.username}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                profile.displayName?.charAt(0).toUpperCase() ||
-                profile.username?.charAt(0).toUpperCase()
-              )}
-            </div>
-          </div>
-
-          <div>
-            {isOwnProfile ? (
-              <Button
-                variant="outline"
-                size="sm"
-                className="font-medium"
-                onClick={() => setIsEditModalOpen(true)}
-              >
-                <Edit3 className="h-3.5 w-3.5 mr-1.5" />
-                Edit Profile
-              </Button>
-            ) : (
-              <Button variant="default" size="sm" className="font-medium">
-                Follow
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* User Identity Details */}
-        <div className="space-y-3">
-          <div>
-            <div className="flex items-center space-x-1.5">
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">{profile.displayName}</h1>
-              {profile.isVerified && (
-                <CheckCircle2 className="h-5 w-5 text-blue-500 fill-blue-500/10" aria-label="Verified Account" />
-              )}
-            </div>
-            <p className="text-sm text-muted-foreground font-medium">@{profile.username}</p>
-          </div>
-
-          {profile.bio && (
-            <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
-              {profile.bio}
-            </p>
+      <section className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+        {/* Background Banner with Deterministic Gradient Fallback */}
+        <div
+          className="w-full h-36 sm:h-48 relative overflow-hidden transition-all group"
+          style={resolveBannerStyle(profile.bannerUrl, profile.username)}
+        >
+          {isOwnProfile && (
+            <button
+              type="button"
+              onClick={() => setIsEditModalOpen(true)}
+              className="absolute top-3 right-3 inline-flex items-center space-x-1 bg-black/50 hover:bg-black/70 text-white text-xs font-medium px-2.5 py-1 rounded-md backdrop-blur-sm shadow-sm transition"
+            >
+              <Camera className="h-3.5 w-3.5 mr-1" />
+              <span>Edit Header</span>
+            </button>
           )}
-
-          <div className="flex items-center text-xs text-muted-foreground space-x-1 pt-1">
-            <Calendar className="h-3.5 w-3.5" />
-            <span>Joined {formattedDate}</span>
-          </div>
         </div>
 
-        {/* Statistics Bar */}
-        <div className="flex items-center space-x-6 pt-4 border-t border-border text-sm">
-          <div className="space-x-1">
-            <span className="font-bold text-foreground">{profile.stats.postCount}</span>
-            <span className="text-muted-foreground text-xs">Posts</span>
+        {/* Profile Details Container */}
+        <div className="px-6 pb-6 sm:px-8 sm:pb-8 pt-0 space-y-4">
+          {/* Top row with Overlapping Avatar and Action Buttons */}
+          <div className="flex items-end justify-between -mt-14 sm:-mt-16">
+            <div className="relative">
+              <div className="flex h-24 w-24 sm:h-28 sm:w-28 items-center justify-center rounded-full border-4 border-card bg-primary text-3xl font-extrabold text-primary-foreground shadow-md overflow-hidden flex-shrink-0">
+                {profile.avatarUrl ? (
+                  <img
+                    src={profile.avatarUrl}
+                    alt={profile.displayName || profile.username}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  profile.displayName?.charAt(0).toUpperCase() ||
+                  profile.username?.charAt(0).toUpperCase()
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2 pb-1">
+              {isOwnProfile ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="font-medium"
+                  onClick={() => setIsEditModalOpen(true)}
+                >
+                  <Edit3 className="h-3.5 w-3.5 mr-1.5" />
+                  Edit Profile
+                </Button>
+              ) : (
+                <>
+                  <FollowButton
+                    targetUserId={profile.id}
+                    targetUsername={profile.username}
+                    isFollowing={profile.relationship?.isFollowing ?? false}
+                    isBlocked={profile.relationship?.isBlocked ?? false}
+                    size="sm"
+                  />
+                  <UserActionMenu
+                    targetUserId={profile.id}
+                    targetUsername={profile.username}
+                    isBlocked={profile.relationship?.isBlocked ?? false}
+                  />
+                </>
+              )}
+            </div>
           </div>
-          <div className="space-x-1">
-            <span className="font-bold text-foreground">{profile.stats.followingCount}</span>
-            <span className="text-muted-foreground text-xs">Following</span>
+
+          {/* User Identity Details with Tight Twitter-Style Typography */}
+          <div className="space-y-2">
+            <div>
+              <div className="flex items-center space-x-1.5 leading-tight">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground leading-tight">
+                  {profile.displayName}
+                </h1>
+                {profile.isVerified && (
+                  <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 fill-blue-500/10 flex-shrink-0" aria-label="Verified Account" />
+                )}
+                <FollowStatusBadge
+                  isFollowing={profile.relationship?.isFollowing}
+                  isFollowedBy={profile.relationship?.isFollowedBy}
+                  isBlocked={profile.relationship?.isBlocked}
+                />
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground font-normal leading-tight mt-0.5">
+                @{profile.username}
+              </p>
+            </div>
+
+            {profile.bio && (
+              <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed pt-0.5">
+                {profile.bio}
+              </p>
+            )}
+
+            <div className="flex items-center text-xs text-muted-foreground space-x-1 pt-0.5">
+              <Calendar className="h-3.5 w-3.5" />
+              <span>Joined {formattedDate}</span>
+            </div>
           </div>
-          <div className="space-x-1">
-            <span className="font-bold text-foreground">{profile.stats.followerCount}</span>
-            <span className="text-muted-foreground text-xs">Followers</span>
+
+          {/* Statistics Bar */}
+          <div className="flex items-center space-x-6 pt-3 border-t border-border text-sm">
+            <div className="space-x-1">
+              <span className="font-bold text-foreground">{profile.stats.postCount}</span>
+              <span className="text-muted-foreground text-xs">Posts</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFollowListModalState({ isOpen: true, tab: "following" })}
+              className="space-x-1 hover:underline text-left cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded"
+            >
+              <span className="font-bold text-foreground">{profile.stats.followingCount}</span>
+              <span className="text-muted-foreground text-xs">Following</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setFollowListModalState({ isOpen: true, tab: "followers" })}
+              className="space-x-1 hover:underline text-left cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded"
+            >
+              <span className="font-bold text-foreground">{profile.stats.followerCount}</span>
+              <span className="text-muted-foreground text-xs">Followers</span>
+            </button>
           </div>
         </div>
       </section>
@@ -260,6 +345,16 @@ export default function UserProfilePage({ params }: ProfilePageProps) {
           currentUser={currentUser}
         />
       )}
+
+      {/* Followers / Following List Modal Dialog */}
+      <FollowListModal
+        isOpen={followListModalState.isOpen}
+        onClose={() => setFollowListModalState({ isOpen: false, tab: "followers" })}
+        targetUserId={profile.id}
+        targetUsername={profile.username}
+        targetDisplayName={profile.displayName}
+        initialTab={followListModalState.tab}
+      />
     </main>
   );
 }

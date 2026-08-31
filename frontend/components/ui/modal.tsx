@@ -56,17 +56,17 @@ export function Modal({ isOpen, onClose, title, description, children, className
       <div
         ref={modalRef}
         className={cn(
-          "w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl text-card-foreground",
+          "w-full max-w-lg rounded-xl border border-border bg-card shadow-2xl text-card-foreground overflow-hidden flex flex-col max-h-[90vh]",
           className
         )}
       >
-        <div className="flex items-start justify-between pb-3 border-b border-border">
-          <div>
-            <h2 id="modal-title" className="text-lg font-semibold tracking-tight text-foreground">
+        <div className="flex items-start justify-between px-6 pt-5 pb-3 border-b border-border bg-card flex-shrink-0">
+          <div className="min-w-0 pr-2">
+            <h2 id="modal-title" className="text-lg font-bold tracking-tight text-foreground leading-snug truncate">
               {title}
             </h2>
             {description && (
-              <p id="modal-description" className="text-sm text-muted-foreground mt-0.5">
+              <p id="modal-description" className="text-xs text-muted-foreground mt-0.5 leading-tight truncate">
                 {description}
               </p>
             )}
@@ -75,13 +75,13 @@ export function Modal({ isOpen, onClose, title, description, children, className
             type="button"
             onClick={onClose}
             aria-label="Close dialog"
-            className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="py-4">{children}</div>
+        <div className="flex-1 overflow-y-auto">{children}</div>
       </div>
     </div>,
     document.body

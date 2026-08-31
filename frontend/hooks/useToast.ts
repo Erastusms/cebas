@@ -13,6 +13,8 @@ export function useToast() {
       addToast({ description, title, variant: "success" }),
     error: (description: string, title?: string) =>
       addToast({ description, title, variant: "error" }),
+    info: (description: string, title?: string) =>
+      addToast({ description, title, variant: "info" }),
     dismiss: removeToast,
   };
 }

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usersApi } from "../lib/api/users";
@@ -33,6 +33,19 @@ export function useProfile(username?: string) {
     },
   });
 
+  const updateBannerMutation = useMutation({
+    mutationFn: async (data: { mediaId?: string; bannerUrl?: string }) => {
+      const res = await usersApi.updateBanner(data);
+      return res.data;
+    },
+    onSuccess: (updatedUser: User) => {
+      queryClient.setQueryData(["currentUser"], updatedUser);
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      queryClient.invalidateQueries({ queryKey: ["profile", updatedUser.username.toLowerCase()] });
+      success("Your profile banner has been updated.", "Banner Updated");
+    },
+  });
+
   return {
     profile: profileQuery.data ?? null,
     isLoading: profileQuery.isLoading,
@@ -42,5 +55,8 @@ export function useProfile(username?: string) {
     updateProfile: updateProfileMutation.mutateAsync,
     isUpdating: updateProfileMutation.isPending,
     updateError: updateProfileMutation.error,
+    updateBanner: updateBannerMutation.mutateAsync,
+    isUpdatingBanner: updateBannerMutation.isPending,
+    updateBannerError: updateBannerMutation.error,
   };
 }

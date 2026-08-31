@@ -27,8 +27,7 @@ describe("Frontend Zod Validation Schemas", () => {
       const result = registerSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
       if (!result.success) {
-        const issues = result.error.issues || (result.error as unknown as { errors: Array<{ path: string[] }> }).errors;
-        expect(issues.some((e: { path: (string | number)[] }) => e.path.includes("confirmPassword"))).toBe(true);
+        expect(result.error.issues.some((e) => (e.path as Array<string | number>).includes("confirmPassword"))).toBe(true);
       }
     });
 

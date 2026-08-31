@@ -1,8 +1,10 @@
-﻿export type UserProfileStats = {
+export type UserProfileStats = {
   postCount: number;
   followerCount: number;
   followingCount: number;
 };
+
+import type { UserProfileRelationship } from "./social";
 
 export type UserProfile = {
   id: string;
@@ -10,14 +12,17 @@ export type UserProfile = {
   displayName: string;
   bio?: string | null;
   avatarUrl?: string | null;
+  bannerUrl?: string | null;
   isVerified: boolean;
   createdAt: string;
   stats: UserProfileStats;
+  relationship?: UserProfileRelationship | null;
 };
 
 export type UpdateProfileRequest = {
   displayName: string;
   bio?: string | null;
+  bannerUrl?: string | null;
 };
 
 export type SessionItem = {

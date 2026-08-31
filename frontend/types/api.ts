@@ -2,4 +2,5 @@ export type { ApiResponse, ProblemDetails, RequestOptions, CursorPagination } fr
 export type { User, RegisterRequest, LoginRequest } from "./auth";
 export type { UserProfile, UserProfileStats, UpdateProfileRequest, SessionItem } from "./user";
 export type { MediaItem, CreateMediaUploadRequest, CreateMediaUploadResponse, UploadStatus, UpdateAvatarRequest } from "./media";
+export type { FollowResponse, BlockResponse, SocialUser, UserProfileRelationship } from "./social";
 

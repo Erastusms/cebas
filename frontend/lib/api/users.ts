@@ -1,4 +1,4 @@
-﻿import { apiClient } from "./client";
+import { apiClient } from "./client";
 import type { ApiResponse } from "./types";
 import type { User, UserProfile, UpdateProfileRequest, SessionItem } from "../../types/api";
 
@@ -9,6 +9,10 @@ export const usersApi = {
 
   updateProfile: async (data: UpdateProfileRequest): Promise<ApiResponse<User>> => {
     return apiClient.patch<ApiResponse<User>>("/api/v1/users/me", data);
+  },
+
+  updateBanner: async (data: { mediaId?: string; bannerUrl?: string }): Promise<ApiResponse<User>> => {
+    return apiClient.put<ApiResponse<User>>("/api/v1/users/me/banner", data);
   },
 
   getSessions: async (): Promise<ApiResponse<SessionItem[]>> => {

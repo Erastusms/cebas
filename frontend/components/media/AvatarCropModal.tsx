@@ -151,7 +151,7 @@ export function AvatarCropModal({
       title="Adjust & Crop Avatar"
       description="Position and crop your avatar image to fit a 1:1 aspect ratio."
     >
-      <div className="space-y-5">
+      <div className="p-6 space-y-5">
         {/* Interactive Crop Viewport */}
         <div
           className="relative mx-auto h-[280px] w-[280px] cursor-grab select-none overflow-hidden rounded-full border-4 border-primary/30 bg-muted active:cursor-grabbing shadow-inner"
