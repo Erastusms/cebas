@@ -15,12 +15,15 @@ public class User : Entity
     public string? Bio { get; private set; }
     public string? AvatarUrl { get; private set; }
     public Guid? AvatarMediaId { get; private set; }
+    public string? BannerUrl { get; private set; }
+    public Guid? BannerMediaId { get; private set; }
     public UserRole Role { get; private set; } = UserRole.User;
     public bool IsVerified { get; private set; } = false;
 
     // Navigation properties
     public ICollection<Session> Sessions { get; private set; } = new List<Session>();
     public Media? AvatarMedia { get; private set; }
+    public Media? BannerMedia { get; private set; }
 
     // EF Core parameterless constructor
     protected User() { }
@@ -79,7 +82,7 @@ public class User : Entity
         return user;
     }
 
-    public void UpdateProfile(string displayName, string? bio, string? avatarUrl = null)
+    public void UpdateProfile(string displayName, string? bio, string? avatarUrl = null, string? bannerUrl = null)
     {
         var trimmedDisplayName = displayName?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(trimmedDisplayName) || trimmedDisplayName.Length > 50)
@@ -99,6 +102,11 @@ public class User : Entity
         if (avatarUrl != null)
         {
             AvatarUrl = avatarUrl.Trim();
+        }
+
+        if (bannerUrl != null)
+        {
+            BannerUrl = bannerUrl.Trim();
         }
 
         UpdatedAt = DateTimeOffset.UtcNow;
@@ -133,4 +141,43 @@ public class User : Entity
 
         AddDomainEvent(new Events.AvatarUpdatedDomainEvent(Id, media.Id, UpdatedAt.Value));
     }
+
+    public void UpdateBanner(Media media)
+    {
+        if (media == null)
+        {
+            throw new ValidationException("Media", "Media cannot be null.");
+        }
+
+        if (media.OwnerUserId != Id)
+        {
+            throw new ForbiddenException("Cannot assign another user's media as your banner.");
+        }
+
+        if (media.Status != MediaStatus.Ready)
+        {
+            throw new ValidationException("Media", $"Cannot set banner with media in status '{media.Status}'. Media must be in 'Ready' status.");
+        }
+
+        if (!Media.AllowedImageMimeTypes.Contains(media.MimeType))
+        {
+            throw new ValidationException("Media", $"Unsupported banner image format '{media.MimeType}'.");
+        }
+
+        BannerMediaId = media.Id;
+        BannerUrl = $"/api/v1/media/{media.Id}";
+        UpdatedAt = DateTimeOffset.UtcNow;
+
+        AddDomainEvent(new Events.BannerUpdatedDomainEvent(Id, media.Id, BannerUrl, UpdatedAt.Value));
+    }
+
+    public void SetBannerUrl(string? bannerUrl)
+    {
+        BannerMediaId = null;
+        BannerUrl = string.IsNullOrWhiteSpace(bannerUrl) ? null : bannerUrl.Trim();
+        UpdatedAt = DateTimeOffset.UtcNow;
+
+        AddDomainEvent(new Events.BannerUpdatedDomainEvent(Id, null, BannerUrl, UpdatedAt.Value));
+    }
 }
+

@@ -6,15 +6,24 @@ public record UserProfileStats(
     int FollowingCount
 );
 
+public record UserProfileRelationship(
+    bool IsFollowing,
+    bool IsFollowedBy,
+    bool IsBlocked,
+    bool IsBlockedBy
+);
+
 public record UserProfileResponse(
     Guid Id,
     string Username,
     string DisplayName,
     string? Bio,
     string? AvatarUrl,
+    string? BannerUrl,
     bool IsVerified,
     DateTimeOffset CreatedAt,
-    UserProfileStats Stats
+    UserProfileStats Stats,
+    UserProfileRelationship? Relationship = null
 );
 
 public record CurrentUserResponse(
@@ -24,6 +33,7 @@ public record CurrentUserResponse(
     string DisplayName,
     string? Bio,
     string? AvatarUrl,
+    string? BannerUrl,
     string Role,
     bool IsVerified,
     DateTimeOffset CreatedAt,
@@ -33,7 +43,13 @@ public record CurrentUserResponse(
 
 public record UpdateProfileRequest(
     string DisplayName,
-    string? Bio
+    string? Bio,
+    string? BannerUrl = null
+);
+
+public record UpdateBannerRequest(
+    Guid? MediaId = null,
+    string? BannerUrl = null
 );
 
 public record SessionItemResponse(

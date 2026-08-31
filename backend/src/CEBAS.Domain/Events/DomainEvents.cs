@@ -56,3 +56,68 @@ public sealed record AvatarUpdatedDomainEvent(
     DateTimeOffset OccurredAt
 ) : IDomainEvent;
 
+public sealed record BannerUpdatedDomainEvent(
+    Guid UserId,
+    Guid? MediaId,
+    string? BannerUrl,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+public sealed record UserFollowedDomainEvent(
+    Guid FollowerId,
+    Guid FollowingId,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+public sealed record UserUnfollowedDomainEvent(
+    Guid FollowerId,
+    Guid FollowingId,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+public sealed record UserBlockedDomainEvent(
+    Guid BlockerId,
+    Guid BlockedId,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+public sealed record UserUnblockedDomainEvent(
+    Guid BlockerId,
+    Guid BlockedId,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+public sealed record FollowRelationshipsRemovedByBlockDomainEvent(
+    Guid BlockerId,
+    Guid BlockedId,
+    int FollowsRemovedCount,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+public sealed record PostCreatedDomainEvent(
+    Guid PostId,
+    Guid AuthorId,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+public sealed record PostDeletedDomainEvent(
+    Guid PostId,
+    Guid AuthorId,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+public sealed record ReplyCreatedDomainEvent(
+    Guid ReplyId,
+    Guid PostId,
+    Guid AuthorId,
+    Guid? ParentReplyId,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+public sealed record ReplyDeletedDomainEvent(
+    Guid ReplyId,
+    Guid PostId,
+    Guid AuthorId,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+

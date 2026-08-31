@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -106,9 +106,11 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Cu
             user.DisplayName,
             user.Bio,
             user.AvatarUrl,
+            user.BannerUrl,
             user.Role.ToString().ToUpperInvariant(),
             user.IsVerified,
-            user.CreatedAt
+            user.CreatedAt,
+            user.UpdatedAt
         );
     }
 }

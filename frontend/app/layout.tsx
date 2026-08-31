@@ -4,6 +4,7 @@ import "./globals.css";
 import { QueryProvider } from "../providers/query-provider";
 import { ToastContainer } from "../components/ui/toast";
 import { Navbar } from "../components/layout/Navbar";
+import { FloatingPostButton } from "../components/posts/FloatingPostButton";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -27,6 +28,7 @@ export default function RootLayout({
         <QueryProvider>
           <Navbar />
           {children}
+          <FloatingPostButton />
           <ToastContainer />
         </QueryProvider>
       </body>

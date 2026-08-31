@@ -72,10 +72,11 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
         services.AddSingleton<ISessionTokenService, SessionTokenService>();
 
-        // 5. Repositories
+        // 5. Repositories & Services
         services.AddScoped<IUserRepository, Persistence.Repositories.UserRepository>();
         services.AddScoped<ISessionRepository, Persistence.Repositories.SessionRepository>();
         services.AddScoped<IMediaRepository, Persistence.Repositories.MediaRepository>();
+        services.AddScoped<IBlockIsolationService, BlockIsolationService>();
 
         // 6. Object Storage Adapters
         services.AddSingleton<Storage.LocalFileStorageAdapter>();

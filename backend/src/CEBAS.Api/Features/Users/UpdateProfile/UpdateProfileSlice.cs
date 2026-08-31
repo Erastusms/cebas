@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -12,7 +12,8 @@ namespace CEBAS.Api.Features.Users.UpdateProfile;
 public sealed record UpdateProfileCommand(
     Guid UserId,
     string DisplayName,
-    string? Bio
+    string? Bio,
+    string? BannerUrl = null
 ) : IRequest<CurrentUserResponse>;
 
 public sealed class UpdateProfileCommandValidator : AbstractValidator<UpdateProfileCommand>
@@ -26,6 +27,10 @@ public sealed class UpdateProfileCommandValidator : AbstractValidator<UpdateProf
         RuleFor(x => x.Bio)
             .MaximumLength(160).WithMessage("Biography cannot exceed 160 characters.")
             .When(x => !string.IsNullOrEmpty(x.Bio));
+
+        RuleFor(x => x.BannerUrl)
+            .MaximumLength(500).WithMessage("Banner URL cannot exceed 500 characters.")
+            .When(x => !string.IsNullOrEmpty(x.BannerUrl));
     }
 }
 
@@ -52,7 +57,7 @@ public sealed class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileC
             throw new NotFoundException("User profile not found.");
         }
 
-        user.UpdateProfile(request.DisplayName, request.Bio);
+        user.UpdateProfile(request.DisplayName, request.Bio, bannerUrl: request.BannerUrl);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Profile updated for @{Username} [UserId: {UserId}]", user.Username, user.Id);
@@ -64,9 +69,11 @@ public sealed class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileC
             user.DisplayName,
             user.Bio,
             user.AvatarUrl,
+            user.BannerUrl,
             user.Role.ToString().ToUpperInvariant(),
             user.IsVerified,
-            user.CreatedAt
+            user.CreatedAt,
+            user.UpdatedAt
         );
     }
 }

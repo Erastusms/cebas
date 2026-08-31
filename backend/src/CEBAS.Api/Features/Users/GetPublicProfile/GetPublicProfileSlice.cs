@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using CEBAS.Application.Contracts.Users;
@@ -8,7 +8,7 @@ using CEBAS.Infrastructure.Persistence;
 
 namespace CEBAS.Api.Features.Users.GetPublicProfile;
 
-public sealed record GetPublicProfileQuery(string Username) : IRequest<UserProfileResponse>;
+public sealed record GetPublicProfileQuery(string Username, Guid? CurrentUserId = null) : IRequest<UserProfileResponse>;
 
 public sealed class GetPublicProfileQueryValidator : AbstractValidator<GetPublicProfileQuery>
 {
@@ -42,8 +42,59 @@ public sealed class GetPublicProfileQueryHandler : IRequestHandler<GetPublicProf
             throw new NotFoundException($"User '@{request.Username}' was not found.");
         }
 
-        // Stats baseline (Phase 1 zero counts, ready for Phase 2 social graph)
-        var stats = new UserProfileStats(0, 0, 0);
+        bool isFollowing = false;
+        bool isFollowedBy = false;
+        bool isBlocked = false;
+        bool isBlockedBy = false;
+
+        if (request.CurrentUserId.HasValue && request.CurrentUserId.Value != user.Id)
+        {
+            var currentUserId = request.CurrentUserId.Value;
+
+            isFollowing = await _dbContext.Follows
+                .AsNoTracking()
+                .AnyAsync(f => f.FollowerId == currentUserId && f.FollowingId == user.Id, cancellationToken);
+
+            isFollowedBy = await _dbContext.Follows
+                .AsNoTracking()
+                .AnyAsync(f => f.FollowerId == user.Id && f.FollowingId == currentUserId, cancellationToken);
+
+            isBlocked = await _dbContext.Blocks
+                .AsNoTracking()
+                .AnyAsync(b => b.BlockerId == currentUserId && b.BlockedId == user.Id, cancellationToken);
+
+            isBlockedBy = await _dbContext.Blocks
+                .AsNoTracking()
+                .AnyAsync(b => b.BlockerId == user.Id && b.BlockedId == currentUserId, cancellationToken);
+
+            // Server-side block isolation: if target user blocked current user, treat profile as unavailable
+            if (isBlockedBy)
+            {
+                throw new NotFoundException($"User '@{request.Username}' was not found.");
+            }
+        }
+
+        var followerCount = await _dbContext.Follows
+            .AsNoTracking()
+            .CountAsync(f => f.FollowingId == user.Id, cancellationToken);
+
+        var followingCount = await _dbContext.Follows
+            .AsNoTracking()
+            .CountAsync(f => f.FollowerId == user.Id, cancellationToken);
+
+        var postCount = await _dbContext.Posts
+            .AsNoTracking()
+            .CountAsync(p => p.AuthorId == user.Id && !p.IsDeleted, cancellationToken);
+
+        var stats = new UserProfileStats(
+            PostCount: postCount,
+            FollowerCount: followerCount,
+            FollowingCount: followingCount
+        );
+
+        var relationship = request.CurrentUserId.HasValue
+            ? new UserProfileRelationship(isFollowing, isFollowedBy, isBlocked, isBlockedBy)
+            : null;
 
         return new UserProfileResponse(
             user.Id,
@@ -51,9 +102,11 @@ public sealed class GetPublicProfileQueryHandler : IRequestHandler<GetPublicProf
             user.DisplayName,
             user.Bio,
             user.AvatarUrl,
+            user.BannerUrl,
             user.IsVerified,
             user.CreatedAt,
-            stats
+            stats,
+            relationship
         );
     }
 }

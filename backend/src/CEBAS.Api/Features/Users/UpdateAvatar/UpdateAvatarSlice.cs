@@ -72,6 +72,7 @@ public sealed class UpdateAvatarCommandHandler : IRequestHandler<UpdateAvatarCom
             user.DisplayName,
             user.Bio,
             user.AvatarUrl,
+            user.BannerUrl,
             user.Role.ToString().ToUpperInvariant(),
             user.IsVerified,
             user.CreatedAt,

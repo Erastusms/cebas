@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using CEBAS.Application.Contracts.Users;
 using CEBAS.Domain.Exceptions;
@@ -35,9 +35,11 @@ public sealed class GetCurrentUserQueryHandler : IRequestHandler<GetCurrentUserQ
             user.DisplayName,
             user.Bio,
             user.AvatarUrl,
+            user.BannerUrl,
             user.Role.ToString().ToUpperInvariant(),
             user.IsVerified,
-            user.CreatedAt
+            user.CreatedAt,
+            user.UpdatedAt
         );
     }
 }

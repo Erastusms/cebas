@@ -1,13 +1,40 @@
 "use client";
 
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Smartphone, User, LogOut, ChevronDown } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { Button } from "../ui/button";
 
 export function Navbar() {
   const { user, isAuthenticated, isLoading, logout, isLoggingOut } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click or Escape key
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMenuOpen]);
 
   return (
     <header className="bg-background/80 sticky top-0 z-40 w-full border-b border-border backdrop-blur">
@@ -23,7 +50,7 @@ export function Navbar() {
                 CEBAS
               </span>
               <span className="bg-primary/10 border-primary/20 rounded-full border px-2 py-0.5 text-xs font-semibold text-primary">
-                Phase 1
+                Social
               </span>
             </div>
             <p className="hidden text-xs text-muted-foreground sm:block">
@@ -33,7 +60,7 @@ export function Navbar() {
         </Link>
 
         {/* Action Controls / Auth Status */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3">
           <a
             href={`${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5226"}/swagger`}
             target="_blank"
@@ -46,40 +73,98 @@ export function Navbar() {
 
           {isLoading ? (
             <div className="h-9 w-24 animate-pulse rounded-lg bg-muted" />
-          ) : isAuthenticated ? (
-            <div className="flex items-center space-x-3">
-              {user && (
-                <Link
-                  href={`/user/${user.username}`}
-                  className="flex items-center space-x-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition"
-                  title="View Public Profile"
-                >
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground overflow-hidden">
-                    {user.avatarUrl ? (
-                      <img
-                        src={user.avatarUrl}
-                        alt={user.displayName || user.username}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      user.displayName?.charAt(0).toUpperCase() ||
-                      user.username.charAt(0).toUpperCase()
-                    )}
-                  </div>
-                  <span className="max-w-[120px] truncate text-xs font-medium sm:text-sm">
-                    @{user.username}
-                  </span>
-                </Link>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => logout()}
-                isLoading={isLoggingOut}
-                className="text-xs font-semibold hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition"
+          ) : isAuthenticated && user ? (
+            /* Single User Profile Dropdown Menu */
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setIsMenuOpen((prev) => !prev)}
+                aria-expanded={isMenuOpen}
+                aria-haspopup="true"
+                className="flex items-center space-x-2 rounded-full border border-border bg-card py-1.5 pl-2 pr-3 text-sm font-medium text-foreground transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary/40"
               >
-                Log Out
-              </Button>
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground overflow-hidden flex-shrink-0">
+                  {user.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt={user.displayName || user.username}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    user.displayName?.charAt(0).toUpperCase() ||
+                    user.username?.charAt(0).toUpperCase() || (
+                      <User className="h-3.5 w-3.5" />
+                    )
+                  )}
+                </div>
+                <span className="max-w-[120px] truncate text-xs font-semibold sm:text-sm">
+                  @{user.username}
+                </span>
+                <ChevronDown
+                  className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${
+                    isMenuOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {/* Dropdown Menu Items */}
+              {isMenuOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-border bg-popover p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95 z-50"
+                >
+                  {/* User info summary header */}
+                  <div className="px-3 py-2 border-b border-border/70">
+                    <p className="text-xs font-bold text-foreground truncate">
+                      {user.displayName || user.username}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      @{user.username}
+                    </p>
+                  </div>
+
+                  <div className="py-1 space-y-0.5">
+                    {/* Item 1: My Profile */}
+                    <Link
+                      href={`/user/${encodeURIComponent(user.username)}`}
+                      onClick={() => setIsMenuOpen(false)}
+                      role="menuitem"
+                      className="flex items-center space-x-2.5 rounded-xl px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition"
+                    >
+                      <User className="h-4 w-4 text-primary" />
+                      <span>My Profile</span>
+                    </Link>
+
+                    {/* Item 2: My Sessions */}
+                    <Link
+                      href="/settings/sessions"
+                      onClick={() => setIsMenuOpen(false)}
+                      role="menuitem"
+                      className="flex items-center space-x-2.5 rounded-xl px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition"
+                    >
+                      <Smartphone className="h-4 w-4 text-muted-foreground" />
+                      <span>My Sessions</span>
+                    </Link>
+                  </div>
+
+                  <div className="border-t border-border/70 pt-1">
+                    {/* Item 3: Logout */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        logout();
+                      }}
+                      disabled={isLoggingOut}
+                      role="menuitem"
+                      className="flex w-full items-center space-x-2.5 rounded-xl px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 transition"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex items-center space-x-2">

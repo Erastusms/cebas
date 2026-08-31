@@ -97,9 +97,11 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoginRes
             user.DisplayName,
             user.Bio,
             user.AvatarUrl,
+            user.BannerUrl,
             user.Role.ToString().ToUpperInvariant(),
             user.IsVerified,
-            user.CreatedAt
+            user.CreatedAt,
+            user.UpdatedAt
         );
 
         return new LoginResult(userResponse, rawToken, expiresAt);

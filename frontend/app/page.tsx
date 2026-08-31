@@ -1,21 +1,17 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { postsApi } from "../lib/api/posts";
 import {
   Activity,
   CheckCircle2,
   Server,
   Shield,
-  Layers,
   Sparkles,
   RefreshCw,
   User,
-  Smartphone,
-  Lock,
-  ArrowRight,
   Search,
 } from "lucide-react";
 import { apiClient } from "../lib/api/client";
@@ -25,6 +21,8 @@ import { useAuth } from "../hooks/useAuth";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { useToast } from "../hooks/useToast";
+import { PostComposer } from "../components/posts/PostComposer";
+import { PostCard } from "../components/posts/PostCard";
 
 type HealthResponse = {
   status: string;
@@ -44,14 +42,29 @@ type PingResponse = {
 
 export default function Home() {
   const { error: toastError } = useToast();
-  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const [searchHandle, setSearchHandle] = useState("");
   const [activeProblem, setActiveProblem] = useState<ProblemDetails | null>(
     null
   );
   const [isLoadingError, setIsLoadingError] = useState(false);
+
+  // Timeline / Feed Query
+  const {
+    data: feedData,
+    isLoading: isFeedLoading,
+    refetch: refetchFeed,
+    isFetching: isFeedFetching,
+  } = useQuery({
+    queryKey: ["timeline-posts", user?.id],
+    queryFn: async () => {
+      const res = await postsApi.getFeed(null, 30);
+      return res.data;
+    },
+  });
 
   // Backend Health Query via TanStack Query
   const {
@@ -103,103 +116,90 @@ export default function Home() {
 
   return (
     <main className="selection:bg-primary/20 min-h-[calc(100vh-4rem)] bg-background text-foreground selection:text-primary">
-      <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
-        {/* Phase 1 Identity & Auth Hero Card */}
-        <section className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-b from-card to-background p-6 shadow-xl sm:p-10">
-          <div className="pointer-events-none absolute right-0 top-0 p-8 opacity-5">
-            <Layers className="h-96 w-96 text-primary" />
-          </div>
+      <div className="mx-auto max-w-4xl space-y-8 px-4 py-6 sm:px-6 lg:px-8">
 
-          <div className="relative z-10 max-w-3xl space-y-4">
-            <div className="inline-flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider text-primary">
-              <Sparkles className="h-4 w-4" />
-              <span>
-                Phase 1 — Identity, Authentication & Profile Management
-              </span>
+        {/* Phase 4 Content Creation & Feed Section */}
+        <section className="space-y-6">
+          {isAuthenticated && (
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-bold text-foreground">Create a Post</h2>
+              </div>
+              <PostComposer
+                onPostCreated={() => {
+                  queryClient.invalidateQueries({ queryKey: ["timeline-posts"] });
+                  refetchFeed();
+                }}
+              />
             </div>
-            <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-foreground sm:text-5xl">
-              Secure, Production-Ready Identity & Multi-Device Sessions
-            </h1>
-            <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Complete authentication foundation powered by BCrypt password
-              hashing, stateful SHA-256 hashed multi-device sessions, HttpOnly
-              cookies, case-insensitive canonical usernames, server-side
-              authorization, public profile viewing, and self-service session
-              revocation.
-            </p>
+          )}
 
-            {/* Dynamic Auth Action State */}
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              {isAuthLoading ? (
-                <div className="h-10 w-48 animate-pulse rounded-lg bg-muted" />
-              ) : isAuthenticated && user ? (
-                <div className="flex flex-wrap items-center gap-3">
-                  <Link href={`/user/${user.username}`}>
-                    <Button variant="default" size="md">
-                      <User className="mr-2 h-4 w-4" />
-                      View My Profile (@{user.username})
-                    </Button>
-                  </Link>
-                  <Link href="/settings/sessions">
-                    <Button variant="outline" size="md">
-                      <Smartphone className="mr-2 h-4 w-4" />
-                      Manage Active Sessions
-                    </Button>
-                  </Link>
+          {/* Timeline Feed Stream */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-2">
+              <h2 className="text-lg font-bold text-foreground">
+                {isAuthenticated ? "Your Feed" : "Recent Posts"}
+              </h2>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => refetchFeed()}
+                disabled={isFeedFetching}
+                className="text-xs text-muted-foreground hover:text-foreground h-8 px-2"
+              >
+                <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isFeedFetching ? "animate-spin" : ""}`} />
+                <span>Refresh</span>
+              </Button>
+            </div>
+
+            {isFeedLoading ? (
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-border bg-card p-6 space-y-3 animate-pulse">
+                  <div className="flex items-center space-x-3">
+                    <div className="h-10 w-10 rounded-full bg-muted" />
+                    <div className="space-y-1.5 flex-1">
+                      <div className="h-4 w-32 rounded bg-muted" />
+                      <div className="h-3 w-20 rounded bg-muted" />
+                    </div>
+                  </div>
+                  <div className="h-12 w-full rounded bg-muted" />
                 </div>
-              ) : (
-                <div className="flex flex-wrap items-center gap-3">
-                  <Link href="/register">
-                    <Button variant="default" size="md">
-                      Create Account
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </Link>
-                  <Link href="/login">
-                    <Button variant="outline" size="md">
-                      <Lock className="mr-2 h-4 w-4" />
-                      Sign In
-                    </Button>
-                  </Link>
+                <div className="rounded-2xl border border-border bg-card p-6 space-y-3 animate-pulse">
+                  <div className="flex items-center space-x-3">
+                    <div className="h-10 w-10 rounded-full bg-muted" />
+                    <div className="space-y-1.5 flex-1">
+                      <div className="h-4 w-28 rounded bg-muted" />
+                      <div className="h-3 w-16 rounded bg-muted" />
+                    </div>
+                  </div>
+                  <div className="h-16 w-full rounded bg-muted" />
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Quick Metrics Grid */}
-          <div className="border-border/80 mt-8 grid grid-cols-2 gap-4 border-t pt-6 sm:grid-cols-4">
-            <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">
-                Password Security
-              </span>
-              <p className="text-sm font-semibold text-foreground">
-                BCrypt (Work Factor 12)
-              </p>
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">
-                Session Storage
-              </span>
-              <p className="text-sm font-semibold text-foreground">
-                SHA-256 Hashed in DB
-              </p>
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">
-                Cookie Attributes
-              </span>
-              <p className="text-sm font-semibold text-foreground">
-                HttpOnly • SameSite=Lax
-              </p>
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">
-                Username Lookup
-              </span>
-              <p className="text-sm font-semibold text-foreground">
-                LOWER(username) Index
-              </p>
-            </div>
+              </div>
+            ) : feedData && feedData.items.length > 0 ? (
+              <div className="space-y-4">
+                {feedData.items.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    onDeleted={() => {
+                      queryClient.invalidateQueries({ queryKey: ["timeline-posts"] });
+                      refetchFeed();
+                    }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-border bg-card p-8 text-center space-y-2">
+                <p className="text-sm font-semibold text-foreground">No posts in your feed yet</p>
+                <p className="text-xs text-muted-foreground">
+                  {isAuthenticated
+                    ? "Publish a post above or explore public user profiles to follow active creators!"
+                    : "Join CEBAS to publish your first post and follow creators!"}
+                </p>
+              </div>
+            )}
           </div>
         </section>
 

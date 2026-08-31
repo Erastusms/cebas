@@ -20,10 +20,17 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.Bio).HasColumnName("bio").HasMaxLength(160);
         builder.Property(u => u.AvatarUrl).HasColumnName("avatar_url").HasMaxLength(500);
         builder.Property(u => u.AvatarMediaId).HasColumnName("avatar_media_id");
+        builder.Property(u => u.BannerUrl).HasColumnName("banner_url").HasMaxLength(500);
+        builder.Property(u => u.BannerMediaId).HasColumnName("banner_media_id");
 
         builder.HasOne(u => u.AvatarMedia)
             .WithMany()
             .HasForeignKey(u => u.AvatarMediaId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(u => u.BannerMedia)
+            .WithMany()
+            .HasForeignKey(u => u.BannerMediaId)
             .OnDelete(DeleteBehavior.SetNull);
 
         builder.Property(u => u.Role)

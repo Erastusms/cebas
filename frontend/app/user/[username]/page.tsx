@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, use } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, CheckCircle2, MessageSquare, Repeat2, Image as ImageIcon, Heart, UserX, Edit3, Camera } from "lucide-react";
 import { useProfile } from "../../../hooks/useProfile";
 import { useAuth } from "../../../hooks/useAuth";
@@ -12,6 +13,9 @@ import { FollowStatusBadge } from "../../../components/social/FollowStatusBadge"
 import { UserActionMenu } from "../../../components/social/UserActionMenu";
 import { FollowListModal } from "../../../components/social/FollowListModal";
 import { BlockedProfileFallback } from "../../../components/social/BlockedProfileFallback";
+import { PostCard } from "../../../components/posts/PostCard";
+import { UserReplyCard } from "../../../components/posts/UserReplyCard";
+import { postsApi } from "../../../lib/api/posts";
 import { resolveBannerStyle } from "../../../lib/utils/gradients";
 
 interface ProfilePageProps {
@@ -37,6 +41,36 @@ export default function UserProfilePage({ params }: ProfilePageProps) {
   }>({
     isOpen: false,
     tab: "followers",
+  });
+
+  const queryClient = useQueryClient();
+
+  // Fetch User Posts for Posts and Media tabs
+  const {
+    data: userPostsData,
+    isLoading: isPostsLoading,
+    refetch: refetchUserPosts,
+  } = useQuery({
+    queryKey: ["user-posts", username, activeTab],
+    queryFn: async () => {
+      const res = await postsApi.getUserPosts(username, activeTab, null, 30);
+      return res.data;
+    },
+    enabled: !!profile && (activeTab === "posts" || activeTab === "media"),
+  });
+
+  // Fetch User Replies for Replies tab
+  const {
+    data: userRepliesData,
+    isLoading: isRepliesLoading,
+    refetch: refetchUserReplies,
+  } = useQuery({
+    queryKey: ["user-replies", username],
+    queryFn: async () => {
+      const res = await postsApi.getUserReplies(username, null, 30);
+      return res.data;
+    },
+    enabled: !!profile && activeTab === "replies",
   });
 
   const isOwnProfile = !!(
@@ -285,46 +319,129 @@ export default function UserProfilePage({ params }: ProfilePageProps) {
           </button>
         </div>
 
-        {/* Tab Content Placeholders */}
-        <div className="p-12 text-center space-y-3">
+        {/* Tab Content */}
+        <div className="p-4 sm:p-6">
           {activeTab === "posts" && (
-            <>
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                <MessageSquare className="h-6 w-6" />
-              </div>
-              <h3 className="font-semibold text-foreground">No posts yet</h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                When @{profile.username} publishes posts, they will appear here.
-              </p>
-            </>
-          )}
-
-          {activeTab === "replies" && (
-            <>
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                <Repeat2 className="h-6 w-6" />
-              </div>
-              <h3 className="font-semibold text-foreground">No replies yet</h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                Conversations and replies by @{profile.username} will be visible here.
-              </p>
-            </>
+            <div>
+              {isPostsLoading ? (
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-border bg-card p-6 space-y-3 animate-pulse">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-10 w-10 rounded-full bg-muted" />
+                      <div className="space-y-1.5 flex-1">
+                        <div className="h-4 w-32 rounded bg-muted" />
+                        <div className="h-3 w-20 rounded bg-muted" />
+                      </div>
+                    </div>
+                    <div className="h-12 w-full rounded bg-muted" />
+                  </div>
+                </div>
+              ) : userPostsData && userPostsData.items.length > 0 ? (
+                <div className="space-y-4">
+                  {userPostsData.items.map((post) => (
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                      onDeleted={() => {
+                        queryClient.invalidateQueries({ queryKey: ["user-posts", username] });
+                        refetchUserPosts();
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="p-12 text-center space-y-3">
+                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    <MessageSquare className="h-6 w-6" />
+                  </div>
+                  <h3 className="font-semibold text-foreground">No posts yet</h3>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    When @{profile.username} publishes posts, they will appear here.
+                  </p>
+                </div>
+              )}
+            </div>
           )}
 
           {activeTab === "media" && (
-            <>
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                <ImageIcon className="h-6 w-6" />
-              </div>
-              <h3 className="font-semibold text-foreground">No media shared</h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                Photos, videos, and media attached to posts will appear here.
-              </p>
-            </>
+            <div>
+              {isPostsLoading ? (
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-border bg-card p-6 space-y-3 animate-pulse">
+                    <div className="h-48 w-full rounded-xl bg-muted" />
+                  </div>
+                </div>
+              ) : userPostsData && userPostsData.items.length > 0 ? (
+                <div className="space-y-4">
+                  {userPostsData.items.map((post) => (
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                      onDeleted={() => {
+                        queryClient.invalidateQueries({ queryKey: ["user-posts", username] });
+                        refetchUserPosts();
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="p-12 text-center space-y-3">
+                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    <ImageIcon className="h-6 w-6" />
+                  </div>
+                  <h3 className="font-semibold text-foreground">No media shared</h3>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    Photos and media attached to posts by @{profile.username} will appear here.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "replies" && (
+            <div>
+              {isRepliesLoading ? (
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-border bg-card p-6 space-y-3 animate-pulse">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-10 w-10 rounded-full bg-muted" />
+                      <div className="space-y-1.5 flex-1">
+                        <div className="h-4 w-32 rounded bg-muted" />
+                        <div className="h-3 w-20 rounded bg-muted" />
+                      </div>
+                    </div>
+                    <div className="h-12 w-full rounded bg-muted" />
+                  </div>
+                </div>
+              ) : userRepliesData && userRepliesData.items.length > 0 ? (
+                <div className="space-y-4">
+                  {userRepliesData.items.map((reply) => (
+                    <UserReplyCard
+                      key={reply.id}
+                      reply={reply}
+                      onDeleted={() => {
+                        queryClient.invalidateQueries({ queryKey: ["user-replies", username] });
+                        refetchUserReplies();
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="p-12 text-center space-y-3">
+                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    <Repeat2 className="h-6 w-6" />
+                  </div>
+                  <h3 className="font-semibold text-foreground">No replies yet</h3>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    Conversations and replies by @{profile.username} will be visible here.
+                  </p>
+                </div>
+              )}
+            </div>
           )}
 
           {activeTab === "likes" && (
-            <>
+            <div className="p-12 text-center space-y-3">
               <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
                 <Heart className="h-6 w-6" />
               </div>
@@ -332,7 +449,7 @@ export default function UserProfilePage({ params }: ProfilePageProps) {
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                 Posts liked by @{profile.username} will show up here.
               </p>
-            </>
+            </div>
           )}
         </div>
       </section>

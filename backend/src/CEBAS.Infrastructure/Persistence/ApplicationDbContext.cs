@@ -10,6 +10,11 @@ public class ApplicationDbContext : DbContext, IDbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<Session> Sessions => Set<Session>();
     public DbSet<Media> Media => Set<Media>();
+    public DbSet<Follow> Follows => Set<Follow>();
+    public DbSet<Block> Blocks => Set<Block>();
+    public DbSet<Post> Posts => Set<Post>();
+    public DbSet<PostMedia> PostMedia => Set<PostMedia>();
+    public DbSet<PostReply> PostReplies => Set<PostReply>();
 
     private readonly MediatR.IPublisher? _publisher;
 
