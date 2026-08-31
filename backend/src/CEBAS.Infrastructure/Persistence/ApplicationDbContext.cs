@@ -9,6 +9,7 @@ public class ApplicationDbContext : DbContext, IDbContext
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Session> Sessions => Set<Session>();
+    public DbSet<Media> Media => Set<Media>();
 
     private readonly MediatR.IPublisher? _publisher;
 
@@ -28,8 +29,8 @@ public class ApplicationDbContext : DbContext, IDbContext
 
         // Custom PostgreSQL ENUMs mapping
         modelBuilder.HasPostgresEnum<UserRole>("user_role_enum");
+        modelBuilder.HasPostgresEnum<MediaStatus>("media_status_enum");
         modelBuilder.HasPostgresEnum("media_type_enum", ["IMAGE", "VIDEO", "AUDIO"]);
-        modelBuilder.HasPostgresEnum("media_status_enum", ["UPLOADING", "READY", "FAILED", "DELETED"]);
         modelBuilder.HasPostgresEnum("notification_type_enum", ["POST_LIKED", "POST_REPLIED", "REPLY_LIKED", "USER_FOLLOWED", "USER_MENTIONED"]);
 
         // Apply entity configurations from current assembly

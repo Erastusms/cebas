@@ -1,4 +1,4 @@
-﻿# .NET
+# .NET
 bin/
 obj/
 *.user
@@ -59,3 +59,10 @@ $RECYCLE.BIN/
 postgres_data/
 redis_data/
 minio_data/
+
+# Local Media Storage
+Storage/
+storage/
+**/Storage/
+**/storage/
+

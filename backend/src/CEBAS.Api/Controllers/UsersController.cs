@@ -10,6 +10,7 @@ using CEBAS.Api.Features.Users.UpdateProfile;
 using CEBAS.Api.Services;
 using CEBAS.Application.Abstractions;
 using CEBAS.Application.Common;
+using CEBAS.Application.Contracts.Media;
 using CEBAS.Application.Contracts.Users;
 using CEBAS.Domain.Exceptions;
 
@@ -81,6 +82,28 @@ public class UsersController : ControllerBase
         var command = new UpdateProfileCommand(_currentUser.UserId.Value, request.DisplayName, request.Bio);
         var updatedUser = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<CurrentUserResponse>.Ok(updatedUser, "Profile updated successfully."));
+    }
+
+    /// <summary>
+    /// Updates current authenticated user's avatar referencing a confirmed, ready media record.
+    /// </summary>
+    [Authorize(AuthenticationSchemes = CookieSessionAuthenticationHandler.SchemeName)]
+    [HttpPut("api/v1/users/me/avatar")]
+    [ProducesResponseType(typeof(ApiResponse<CurrentUserResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetailsResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetailsResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetailsResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetailsResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateAvatar([FromBody] UpdateAvatarRequest request, CancellationToken cancellationToken)
+    {
+        if (!_currentUser.UserId.HasValue)
+        {
+            throw new UnauthorizedException("Authenticated user context is missing or invalid.");
+        }
+
+        var command = new Features.Users.UpdateAvatar.UpdateAvatarCommand(_currentUser.UserId.Value, request.MediaId);
+        var updatedUser = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<CurrentUserResponse>.Ok(updatedUser, "Avatar updated successfully."));
     }
 
     /// <summary>

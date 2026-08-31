@@ -13,7 +13,7 @@ export class ApiClient {
     this.baseUrl = (
       baseUrl ??
       process.env.NEXT_PUBLIC_API_BASE_URL ??
-      "http://localhost:5000"
+      "http://localhost:5226"
     ).replace(/\/$/, "");
     this.defaultTimeoutMs = defaultTimeoutMs;
   }

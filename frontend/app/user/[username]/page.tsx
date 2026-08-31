@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, use } from "react";
 import { Calendar, CheckCircle2, MessageSquare, Repeat2, Image as ImageIcon, Heart, UserX, Edit3 } from "lucide-react";
@@ -77,8 +77,17 @@ export default function UserProfilePage({ params }: ProfilePageProps) {
         {/* Top bar with Avatar and Action Button */}
         <div className="flex items-start justify-between">
           <div className="relative">
-            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary text-3xl font-extrabold text-primary-foreground shadow-lg shadow-primary/20">
-              {profile.displayName.charAt(0).toUpperCase() || profile.username.charAt(0).toUpperCase()}
+            <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-border bg-primary text-3xl font-extrabold text-primary-foreground shadow-lg shadow-primary/20 overflow-hidden">
+              {profile.avatarUrl ? (
+                <img
+                  src={profile.avatarUrl}
+                  alt={profile.displayName || profile.username}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                profile.displayName?.charAt(0).toUpperCase() ||
+                profile.username?.charAt(0).toUpperCase()
+              )}
             </div>
           </div>
 

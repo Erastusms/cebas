@@ -1,4 +1,4 @@
-﻿using CEBAS.Domain.Common;
+using CEBAS.Domain.Common;
 
 namespace CEBAS.Domain.Events;
 
@@ -35,3 +35,24 @@ public sealed record SessionRevokedDomainEvent(
     Guid SessionId,
     DateTimeOffset OccurredAt
 ) : IDomainEvent;
+
+public sealed record MediaUploadInitiatedDomainEvent(
+    Guid MediaId,
+    Guid OwnerUserId,
+    string StorageKey,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+public sealed record MediaUploadConfirmedDomainEvent(
+    Guid MediaId,
+    Guid OwnerUserId,
+    string StorageKey,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+public sealed record AvatarUpdatedDomainEvent(
+    Guid UserId,
+    Guid MediaId,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+

@@ -35,7 +35,7 @@ export function Navbar() {
         {/* Action Controls / Auth Status */}
         <div className="flex items-center space-x-3">
           <a
-            href="https://localhost:7090/swagger"
+            href={`${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5226"}/swagger`}
             target="_blank"
             rel="noreferrer"
             className="bg-muted/40 hidden items-center space-x-1.5 rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-muted hover:text-foreground md:inline-flex"
@@ -54,9 +54,17 @@ export function Navbar() {
                   className="flex items-center space-x-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition"
                   title="View Public Profile"
                 >
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                    {user.displayName?.charAt(0).toUpperCase() ||
-                      user.username.charAt(0).toUpperCase()}
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground overflow-hidden">
+                    {user.avatarUrl ? (
+                      <img
+                        src={user.avatarUrl}
+                        alt={user.displayName || user.username}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      user.displayName?.charAt(0).toUpperCase() ||
+                      user.username.charAt(0).toUpperCase()
+                    )}
                   </div>
                   <span className="max-w-[120px] truncate text-xs font-medium sm:text-sm">
                     @{user.username}

@@ -7,7 +7,7 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 
-const SWAGGER_URL = process.env.SWAGGER_URL || "http://localhost:5000/swagger/v1/swagger.json";
+const SWAGGER_URL = process.env.SWAGGER_URL || "http://localhost:5226/swagger/v1/swagger.json";
 const OUTPUT_PATH = path.resolve(__dirname, "../types/generated-api-schema.json");
 
 console.log(`[CEBAS TypeGen] Fetching OpenAPI specification from ${SWAGGER_URL}...`);

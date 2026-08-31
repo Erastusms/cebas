@@ -14,11 +14,13 @@ public class User : Entity
     public string DisplayName { get; private set; } = string.Empty;
     public string? Bio { get; private set; }
     public string? AvatarUrl { get; private set; }
+    public Guid? AvatarMediaId { get; private set; }
     public UserRole Role { get; private set; } = UserRole.User;
     public bool IsVerified { get; private set; } = false;
 
     // Navigation properties
     public ICollection<Session> Sessions { get; private set; } = new List<Session>();
+    public Media? AvatarMedia { get; private set; }
 
     // EF Core parameterless constructor
     protected User() { }
@@ -101,5 +103,34 @@ public class User : Entity
 
         UpdatedAt = DateTimeOffset.UtcNow;
         AddDomainEvent(new Events.ProfileUpdatedDomainEvent(Id, DisplayName, Bio, UpdatedAt.Value));
+    }
+
+    public void UpdateAvatar(Media media)
+    {
+        if (media == null)
+        {
+            throw new ValidationException("Media", "Media cannot be null.");
+        }
+
+        if (media.OwnerUserId != Id)
+        {
+            throw new ForbiddenException("Cannot assign another user's media as your avatar.");
+        }
+
+        if (media.Status != MediaStatus.Ready)
+        {
+            throw new ValidationException("Media", $"Cannot set avatar with media in status '{media.Status}'. Media must be in 'Ready' status.");
+        }
+
+        if (!Media.AllowedImageMimeTypes.Contains(media.MimeType))
+        {
+            throw new ValidationException("Media", $"Unsupported avatar image format '{media.MimeType}'.");
+        }
+
+        AvatarMediaId = media.Id;
+        AvatarUrl = $"/api/v1/media/{media.Id}";
+        UpdatedAt = DateTimeOffset.UtcNow;
+
+        AddDomainEvent(new Events.AvatarUpdatedDomainEvent(Id, media.Id, UpdatedAt.Value));
     }
 }

@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.Configure<PgBouncerOptions>(configuration.GetSection(PgBouncerOptions.SectionName));
         services.Configure<RedisOptions>(configuration.GetSection(RedisOptions.SectionName));
         services.Configure<MinioOptions>(configuration.GetSection(MinioOptions.SectionName));
+        services.Configure<MediaStorageOptions>(configuration.GetSection(MediaStorageOptions.SectionName));
 
         var postgresOptions = configuration.GetSection(PostgresOptions.SectionName).Get<PostgresOptions>() ?? new PostgresOptions();
         var pgBouncerOptions = configuration.GetSection(PgBouncerOptions.SectionName).Get<PgBouncerOptions>() ?? new PgBouncerOptions();
@@ -74,6 +75,55 @@ public static class DependencyInjection
         // 5. Repositories
         services.AddScoped<IUserRepository, Persistence.Repositories.UserRepository>();
         services.AddScoped<ISessionRepository, Persistence.Repositories.SessionRepository>();
+        services.AddScoped<IMediaRepository, Persistence.Repositories.MediaRepository>();
+
+        // 6. Object Storage Adapters
+        services.AddSingleton<Storage.LocalFileStorageAdapter>();
+        services.AddSingleton<IObjectStorage>(sp =>
+        {
+            var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<MediaStorageOptions>>().Value;
+            var provider = options.Provider?.Trim().ToLowerInvariant() ?? "local";
+
+            return provider switch
+            {
+                "local" => sp.GetRequiredService<Storage.LocalFileStorageAdapter>(),
+                "s3" => new Storage.S3StorageAdapter(
+                    new Amazon.S3.AmazonS3Client(
+                        options.AccessKey ?? "dummy",
+                        options.SecretKey ?? "dummy",
+                        new Amazon.S3.AmazonS3Config
+                        {
+                            RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(options.Region ?? "us-east-1"),
+                            ServiceURL = options.ServiceUrl,
+                            ForcePathStyle = options.ForcePathStyle
+                        }),
+                    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<MediaStorageOptions>>(),
+                    sp.GetRequiredService<ILogger<Storage.S3StorageAdapter>>()),
+                "r2" => new Storage.R2StorageAdapter(
+                    new Amazon.S3.AmazonS3Client(
+                        options.AccessKey ?? "dummy",
+                        options.SecretKey ?? "dummy",
+                        new Amazon.S3.AmazonS3Config
+                        {
+                            ServiceURL = options.ServiceUrl,
+                            ForcePathStyle = true
+                        }),
+                    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<MediaStorageOptions>>(),
+                    sp.GetRequiredService<ILogger<Storage.R2StorageAdapter>>()),
+                "minio" => new Storage.MinioStorageAdapter(
+                    new Amazon.S3.AmazonS3Client(
+                        options.AccessKey ?? "dummy",
+                        options.SecretKey ?? "dummy",
+                        new Amazon.S3.AmazonS3Config
+                        {
+                            ServiceURL = options.ServiceUrl,
+                            ForcePathStyle = true
+                        }),
+                    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<MediaStorageOptions>>(),
+                    sp.GetRequiredService<ILogger<Storage.MinioStorageAdapter>>()),
+                _ => sp.GetRequiredService<Storage.LocalFileStorageAdapter>()
+            };
+        });
 
         return services;
     }
