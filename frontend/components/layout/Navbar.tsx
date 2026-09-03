@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { ExternalLink, Smartphone, User, LogOut, ChevronDown } from "lucide-react";
+import { ExternalLink, Smartphone, User, Bookmark, LogOut, ChevronDown } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { Button } from "../ui/button";
 
@@ -135,7 +135,18 @@ export function Navbar() {
                       <span>My Profile</span>
                     </Link>
 
-                    {/* Item 2: My Sessions */}
+                    {/* Item 2: Bookmarks */}
+                    <Link
+                      href="/bookmarks"
+                      onClick={() => setIsMenuOpen(false)}
+                      role="menuitem"
+                      className="flex items-center space-x-2.5 rounded-xl px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition"
+                    >
+                      <Bookmark className="h-4 w-4 text-primary" />
+                      <span>Bookmarks</span>
+                    </Link>
+
+                    {/* Item 3: My Sessions */}
                     <Link
                       href="/settings/sessions"
                       onClick={() => setIsMenuOpen(false)}

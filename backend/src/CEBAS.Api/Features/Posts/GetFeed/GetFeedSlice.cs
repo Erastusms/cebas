@@ -85,6 +85,28 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, CursorPa
             .Take(pageSize + 1)
             .ToListAsync(cancellationToken);
 
+        var postIds = posts.Select(p => p.Id).ToList();
+        HashSet<Guid> likedPostIds = [];
+        HashSet<Guid> bookmarkedPostIds = [];
+
+        if (request.ViewerUserId.HasValue && postIds.Count > 0)
+        {
+            var viewerId = request.ViewerUserId.Value;
+            var liked = await _dbContext.PostLikes
+                .AsNoTracking()
+                .Where(l => l.UserId == viewerId && postIds.Contains(l.PostId))
+                .Select(l => l.PostId)
+                .ToListAsync(cancellationToken);
+            likedPostIds = liked.ToHashSet();
+
+            var bookmarked = await _dbContext.PostBookmarks
+                .AsNoTracking()
+                .Where(b => b.UserId == viewerId && postIds.Contains(b.PostId))
+                .Select(b => b.PostId)
+                .ToListAsync(cancellationToken);
+            bookmarkedPostIds = bookmarked.ToHashSet();
+        }
+
         var mappedList = posts.Select(p =>
         {
             var authorDto = new PostAuthorDto(
@@ -114,6 +136,10 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, CursorPa
                 mediaDtos,
                 p.ReplyCount,
                 p.MediaCount,
+                p.LikeCount,
+                p.BookmarkCount,
+                likedPostIds.Contains(p.Id),
+                bookmarkedPostIds.Contains(p.Id),
                 p.IsDeleted,
                 p.CreatedAt,
                 p.UpdatedAt

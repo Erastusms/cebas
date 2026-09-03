@@ -21,6 +21,10 @@ export type Post = {
   media: PostMedia[];
   replyCount: number;
   mediaCount: number;
+  likeCount: number;
+  bookmarkCount: number;
+  liked: boolean;
+  bookmarked: boolean;
   isDeleted: boolean;
   createdAt: string;
   updatedAt?: string | null;

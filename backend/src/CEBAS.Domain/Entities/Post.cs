@@ -19,11 +19,15 @@ public class Post : Entity
     public DateTimeOffset? DeletedAt { get; private set; }
     public int ReplyCount { get; private set; } = 0;
     public int MediaCount { get; private set; } = 0;
+    public int LikeCount { get; private set; } = 0;
+    public int BookmarkCount { get; private set; } = 0;
 
     // Navigation properties
     public User? Author { get; private set; }
     public ICollection<PostMedia> MediaAttachments { get; private set; } = new List<PostMedia>();
     public ICollection<PostReply> Replies { get; private set; } = new List<PostReply>();
+    public ICollection<PostLike> Likes { get; private set; } = new List<PostLike>();
+    public ICollection<PostBookmark> Bookmarks { get; private set; } = new List<PostBookmark>();
 
     // EF Core parameterless constructor
     protected Post() { }
@@ -91,6 +95,30 @@ public class Post : Entity
     public void DecrementReplyCount()
     {
         ReplyCount = Math.Max(0, ReplyCount - 1);
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void IncrementLikeCount()
+    {
+        LikeCount++;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void DecrementLikeCount()
+    {
+        LikeCount = Math.Max(0, LikeCount - 1);
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void IncrementBookmarkCount()
+    {
+        BookmarkCount++;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void DecrementBookmarkCount()
+    {
+        BookmarkCount = Math.Max(0, BookmarkCount - 1);
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

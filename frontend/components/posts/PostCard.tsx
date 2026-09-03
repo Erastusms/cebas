@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { MessageSquare, MoreHorizontal, Trash2, CheckCircle2 } from "lucide-react";
 import { PostMediaGrid } from "./PostMediaGrid";
 import { DeletePostModal } from "./DeletePostModal";
+import { LikeButton } from "./LikeButton";
+import { BookmarkButton } from "./BookmarkButton";
 import { useAuth } from "../../hooks/useAuth";
 import { formatPostTimestamp } from "../../lib/utils/time";
 import type { Post } from "../../types/api";
@@ -159,14 +161,30 @@ export function PostCard({
 
         {/* Engagement Footer */}
         <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-3 text-xs text-muted-foreground">
-          <Link
-            href={`/post/${post.id}`}
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center space-x-1.5 rounded-md px-2 py-1 hover:bg-muted hover:text-primary transition"
-          >
-            <MessageSquare className="h-4 w-4" />
-            <span>{post.replyCount} Replies</span>
-          </Link>
+          <div className="flex items-center space-x-4">
+            <LikeButton
+              postId={post.id}
+              initialLiked={post.liked}
+              initialLikeCount={post.likeCount}
+            />
+
+            <Link
+              href={`/post/${post.id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center space-x-1.5 rounded-md px-2 py-1 hover:bg-muted hover:text-primary transition"
+            >
+              <MessageSquare className="h-4 w-4" />
+              <span>{post.replyCount} Replies</span>
+            </Link>
+          </div>
+
+          <div className="flex items-center space-x-1">
+            <BookmarkButton
+              postId={post.id}
+              initialBookmarked={post.bookmarked}
+              initialBookmarkCount={post.bookmarkCount}
+            />
+          </div>
         </div>
       </article>
 

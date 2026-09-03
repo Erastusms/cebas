@@ -4,4 +4,4 @@ export type { UserProfile, UserProfileStats, UpdateProfileRequest, SessionItem }
 export type { MediaItem, CreateMediaUploadRequest, CreateMediaUploadResponse, UploadStatus, UpdateAvatarRequest } from "./media";
 export type { FollowResponse, BlockResponse, SocialUser, UserProfileRelationship } from "./social";
 export type { Post, PostAuthor, PostMedia, CreatePostRequest, CreateReplyRequest, ReplyAuthor, ReplyItem, HierarchicalRepliesResult, UserReply } from "./post";
-
+export type { LikeResponse, BookmarkResponse, BookmarkedPost } from "./engagement";

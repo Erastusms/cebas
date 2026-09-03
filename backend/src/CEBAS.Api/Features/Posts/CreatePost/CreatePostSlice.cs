@@ -180,6 +180,10 @@ public sealed class CreatePostCommandHandler : IRequestHandler<CreatePostCommand
             mediaDtos,
             post.ReplyCount,
             post.MediaCount,
+            post.LikeCount,
+            post.BookmarkCount,
+            false,
+            false,
             post.IsDeleted,
             post.CreatedAt,
             post.UpdatedAt

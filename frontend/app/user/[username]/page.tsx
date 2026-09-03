@@ -2,7 +2,7 @@
 
 import React, { useState, use } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, CheckCircle2, MessageSquare, Repeat2, Image as ImageIcon, Heart, UserX, Edit3, Camera } from "lucide-react";
+import { Calendar, CheckCircle2, MessageSquare, Repeat2, Image as ImageIcon, Heart, Bookmark, UserX, Edit3, Camera } from "lucide-react";
 import { useProfile } from "../../../hooks/useProfile";
 import { useAuth } from "../../../hooks/useAuth";
 import { Button } from "../../../components/ui/button";
@@ -24,7 +24,7 @@ interface ProfilePageProps {
   }>;
 }
 
-type TabType = "posts" | "replies" | "media" | "likes";
+type TabType = "posts" | "replies" | "media" | "likes" | "bookmarks";
 
 export default function UserProfilePage({ params }: ProfilePageProps) {
   const resolvedParams = use(params);
@@ -45,7 +45,7 @@ export default function UserProfilePage({ params }: ProfilePageProps) {
 
   const queryClient = useQueryClient();
 
-  // Fetch User Posts for Posts and Media tabs
+  // Fetch User Posts for Posts, Media, Likes, and Bookmarks tabs
   const {
     data: userPostsData,
     isLoading: isPostsLoading,
@@ -56,7 +56,12 @@ export default function UserProfilePage({ params }: ProfilePageProps) {
       const res = await postsApi.getUserPosts(username, activeTab, null, 30);
       return res.data;
     },
-    enabled: !!profile && (activeTab === "posts" || activeTab === "media"),
+    enabled:
+      !!profile &&
+      (activeTab === "posts" ||
+        activeTab === "media" ||
+        activeTab === "likes" ||
+        activeTab === "bookmarks"),
   });
 
   // Fetch User Replies for Replies tab
@@ -317,6 +322,19 @@ export default function UserProfilePage({ params }: ProfilePageProps) {
           >
             Likes
           </button>
+          {isOwnProfile && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("bookmarks")}
+              className={`flex-1 py-3 text-center transition-colors border-b-2 ${
+                activeTab === "bookmarks"
+                  ? "border-primary text-primary font-semibold"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Bookmarks
+            </button>
+          )}
         </div>
 
         {/* Tab Content */}
@@ -441,14 +459,88 @@ export default function UserProfilePage({ params }: ProfilePageProps) {
           )}
 
           {activeTab === "likes" && (
-            <div className="p-12 text-center space-y-3">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                <Heart className="h-6 w-6" />
-              </div>
-              <h3 className="font-semibold text-foreground">No liked posts</h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                Posts liked by @{profile.username} will show up here.
-              </p>
+            <div>
+              {isPostsLoading ? (
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-border bg-card p-6 space-y-3 animate-pulse">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-10 w-10 rounded-full bg-muted" />
+                      <div className="space-y-1.5 flex-1">
+                        <div className="h-4 w-32 rounded bg-muted" />
+                        <div className="h-3 w-20 rounded bg-muted" />
+                      </div>
+                    </div>
+                    <div className="h-12 w-full rounded bg-muted" />
+                  </div>
+                </div>
+              ) : userPostsData && userPostsData.items.length > 0 ? (
+                <div className="space-y-4">
+                  {userPostsData.items.map((post) => (
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                      onDeleted={() => {
+                        queryClient.invalidateQueries({ queryKey: ["user-posts", username] });
+                        refetchUserPosts();
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="p-12 text-center space-y-3">
+                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    <Heart className="h-6 w-6" />
+                  </div>
+                  <h3 className="font-semibold text-foreground">No liked posts</h3>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    {isOwnProfile
+                      ? "You haven't liked any posts yet."
+                      : `Posts liked by @${profile.username} will show up here.`}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "bookmarks" && (
+            <div>
+              {isPostsLoading ? (
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-border bg-card p-6 space-y-3 animate-pulse">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-10 w-10 rounded-full bg-muted" />
+                      <div className="space-y-1.5 flex-1">
+                        <div className="h-4 w-32 rounded bg-muted" />
+                        <div className="h-3 w-20 rounded bg-muted" />
+                      </div>
+                    </div>
+                    <div className="h-12 w-full rounded bg-muted" />
+                  </div>
+                </div>
+              ) : userPostsData && userPostsData.items.length > 0 ? (
+                <div className="space-y-4">
+                  {userPostsData.items.map((post) => (
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                      onDeleted={() => {
+                        queryClient.invalidateQueries({ queryKey: ["user-posts", username] });
+                        refetchUserPosts();
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="p-12 text-center space-y-3">
+                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    <Bookmark className="h-6 w-6" />
+                  </div>
+                  <h3 className="font-semibold text-foreground">No bookmarks yet</h3>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    Save posts to find them here later.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>

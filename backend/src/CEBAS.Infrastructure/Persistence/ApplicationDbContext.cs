@@ -15,6 +15,8 @@ public class ApplicationDbContext : DbContext, IDbContext
     public DbSet<Post> Posts => Set<Post>();
     public DbSet<PostMedia> PostMedia => Set<PostMedia>();
     public DbSet<PostReply> PostReplies => Set<PostReply>();
+    public DbSet<PostLike> PostLikes => Set<PostLike>();
+    public DbSet<PostBookmark> PostBookmarks => Set<PostBookmark>();
 
     private readonly MediatR.IPublisher? _publisher;
 

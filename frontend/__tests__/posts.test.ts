@@ -27,6 +27,10 @@ describe("Frontend Posts & Replies API Client & Invariants", () => {
         media: [],
         replyCount: 0,
         mediaCount: 0,
+        likeCount: 0,
+        bookmarkCount: 0,
+        liked: false,
+        bookmarked: false,
         isDeleted: false,
         createdAt: new Date().toISOString(),
       };
@@ -72,6 +76,10 @@ describe("Frontend Posts & Replies API Client & Invariants", () => {
         ],
         replyCount: 3,
         mediaCount: 1,
+        likeCount: 5,
+        bookmarkCount: 2,
+        liked: true,
+        bookmarked: false,
         isDeleted: false,
         createdAt: new Date().toISOString(),
       };

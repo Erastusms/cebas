@@ -28,6 +28,10 @@ public record PostResponse(
     List<PostMediaDto> Media,
     int ReplyCount,
     int MediaCount,
+    int LikeCount,
+    int BookmarkCount,
+    bool Liked,
+    bool Bookmarked,
     bool IsDeleted,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt

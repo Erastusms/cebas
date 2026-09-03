@@ -61,7 +61,23 @@ public sealed class GetPostQueryHandler : IRequestHandler<GetPostQuery, PostResp
             }
         }
 
-        // 3. Map into response DTO
+        // 3. Check viewer engagement state (liked, bookmarked)
+        bool isLiked = false;
+        bool isBookmarked = false;
+
+        if (request.ViewerUserId.HasValue)
+        {
+            var viewerId = request.ViewerUserId.Value;
+            isLiked = await _dbContext.PostLikes
+                .AsNoTracking()
+                .AnyAsync(l => l.PostId == post.Id && l.UserId == viewerId, cancellationToken);
+
+            isBookmarked = await _dbContext.PostBookmarks
+                .AsNoTracking()
+                .AnyAsync(b => b.PostId == post.Id && b.UserId == viewerId, cancellationToken);
+        }
+
+        // 4. Map into response DTO
         var authorDto = new PostAuthorDto(
             post.Author!.Id,
             post.Author.Username,
@@ -89,6 +105,10 @@ public sealed class GetPostQueryHandler : IRequestHandler<GetPostQuery, PostResp
             mediaDtos,
             post.ReplyCount,
             post.MediaCount,
+            post.LikeCount,
+            post.BookmarkCount,
+            isLiked,
+            isBookmarked,
             post.IsDeleted,
             post.CreatedAt,
             post.UpdatedAt

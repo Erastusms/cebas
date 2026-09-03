@@ -121,3 +121,27 @@ public sealed record ReplyDeletedDomainEvent(
     DateTimeOffset OccurredAt
 ) : IDomainEvent;
 
+public sealed record PostLikedDomainEvent(
+    Guid PostId,
+    Guid ActorUserId,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+public sealed record PostUnlikedDomainEvent(
+    Guid PostId,
+    Guid ActorUserId,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+public sealed record PostBookmarkedDomainEvent(
+    Guid PostId,
+    Guid ActorUserId,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+public sealed record PostUnbookmarkedDomainEvent(
+    Guid PostId,
+    Guid ActorUserId,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+

@@ -19,6 +19,8 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
         builder.Property(p => p.DeletedAt).HasColumnName("deleted_at");
         builder.Property(p => p.ReplyCount).HasColumnName("reply_count").HasDefaultValue(0).IsRequired();
         builder.Property(p => p.MediaCount).HasColumnName("media_count").HasDefaultValue(0).IsRequired();
+        builder.Property(p => p.LikeCount).HasColumnName("like_count").HasDefaultValue(0).IsRequired();
+        builder.Property(p => p.BookmarkCount).HasColumnName("bookmark_count").HasDefaultValue(0).IsRequired();
         builder.Property(p => p.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(p => p.UpdatedAt).HasColumnName("updated_at");
 
