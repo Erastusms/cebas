@@ -8,6 +8,7 @@ import { AuthGuard } from "../../components/auth/AuthGuard";
 import { PostCard } from "../../components/posts/PostCard";
 import { Button } from "../../components/ui/button";
 import { Skeleton } from "../../components/ui/skeleton";
+import type { BookmarkedPost } from "../../types/api";
 
 export default function BookmarksPage() {
   const {
@@ -20,7 +21,19 @@ export default function BookmarksPage() {
     refetch,
   } = useBookmarks(20);
 
-  const allBookmarks = data?.pages.flatMap((page) => page.items) ?? [];
+  const rawItems = data?.pages.flatMap((page) => page.items) ?? [];
+  const seenIds = new Set<string>();
+  const allBookmarks: BookmarkedPost[] = rawItems
+    .map((item: BookmarkedPost) => ({
+      ...item,
+      id: item.id || item.postId || item.bookmarkId,
+    }))
+    .filter((item: BookmarkedPost) => {
+      const stableId = item.id || item.postId || item.bookmarkId;
+      if (!stableId || seenIds.has(stableId)) return false;
+      seenIds.add(stableId);
+      return true;
+    });
 
   return (
     <AuthGuard>
@@ -102,7 +115,7 @@ export default function BookmarksPage() {
           <div className="space-y-4">
             {allBookmarks.map((bookmarkedPost) => (
               <PostCard
-                key={bookmarkedPost.id}
+                key={bookmarkedPost.id || bookmarkedPost.postId || bookmarkedPost.bookmarkId}
                 post={bookmarkedPost}
               />
             ))}

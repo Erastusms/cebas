@@ -22,7 +22,8 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { useToast } from "../hooks/useToast";
 import { PostComposer } from "../components/posts/PostComposer";
-import { PostCard } from "../components/posts/PostCard";
+import { InfiniteFeed } from "../components/posts/InfiniteFeed";
+import { timelinesApi } from "../lib/api/timelines";
 
 type HealthResponse = {
   status: string;
@@ -52,19 +53,6 @@ export default function Home() {
   );
   const [isLoadingError, setIsLoadingError] = useState(false);
 
-  // Timeline / Feed Query
-  const {
-    data: feedData,
-    isLoading: isFeedLoading,
-    refetch: refetchFeed,
-    isFetching: isFeedFetching,
-  } = useQuery({
-    queryKey: ["timeline-posts", user?.id],
-    queryFn: async () => {
-      const res = await postsApi.getFeed(null, 30);
-      return res.data;
-    },
-  });
 
   // Backend Health Query via TanStack Query
   const {
@@ -129,13 +117,13 @@ export default function Home() {
               <PostComposer
                 onPostCreated={() => {
                   queryClient.invalidateQueries({ queryKey: ["timeline-posts"] });
-                  refetchFeed();
+                  queryClient.invalidateQueries({ queryKey: ["home-timeline"] });
                 }}
               />
             </div>
           )}
 
-          {/* Timeline Feed Stream */}
+          {/* Timeline Feed Stream with Keyset Infinite Scrolling */}
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-border pb-2">
               <h2 className="text-lg font-bold text-foreground">
@@ -145,61 +133,34 @@ export default function Home() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => refetchFeed()}
-                disabled={isFeedFetching}
+                onClick={() => {
+                  queryClient.invalidateQueries({ queryKey: ["timeline-posts"] });
+                  queryClient.invalidateQueries({ queryKey: ["home-timeline"] });
+                }}
                 className="text-xs text-muted-foreground hover:text-foreground h-8 px-2"
               >
-                <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isFeedFetching ? "animate-spin" : ""}`} />
+                <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
                 <span>Refresh</span>
               </Button>
             </div>
 
-            {isFeedLoading ? (
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-border bg-card p-6 space-y-3 animate-pulse">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 rounded-full bg-muted" />
-                    <div className="space-y-1.5 flex-1">
-                      <div className="h-4 w-32 rounded bg-muted" />
-                      <div className="h-3 w-20 rounded bg-muted" />
-                    </div>
-                  </div>
-                  <div className="h-12 w-full rounded bg-muted" />
-                </div>
-                <div className="rounded-2xl border border-border bg-card p-6 space-y-3 animate-pulse">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 rounded-full bg-muted" />
-                    <div className="space-y-1.5 flex-1">
-                      <div className="h-4 w-28 rounded bg-muted" />
-                      <div className="h-3 w-16 rounded bg-muted" />
-                    </div>
-                  </div>
-                  <div className="h-16 w-full rounded bg-muted" />
-                </div>
-              </div>
-            ) : feedData && feedData.items.length > 0 ? (
-              <div className="space-y-4">
-                {feedData.items.map((post) => (
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    onDeleted={() => {
-                      queryClient.invalidateQueries({ queryKey: ["timeline-posts"] });
-                      refetchFeed();
-                    }}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-border bg-card p-8 text-center space-y-2">
-                <p className="text-sm font-semibold text-foreground">No posts in your feed yet</p>
-                <p className="text-xs text-muted-foreground">
-                  {isAuthenticated
-                    ? "Publish a post above or explore public user profiles to follow active creators!"
-                    : "Join CEBAS to publish your first post and follow creators!"}
-                </p>
-              </div>
-            )}
+            <InfiniteFeed
+              queryKey={["home-timeline", user?.id]}
+              queryFn={async (cursor) => {
+                if (isAuthenticated) {
+                  const res = await timelinesApi.getHomeTimeline(cursor, 20);
+                  return res.data;
+                }
+                const res = await postsApi.getFeed(cursor, 20);
+                return res.data;
+              }}
+              emptyTitle="Belum ada postingan, ikuti akun lain untuk mulai melihat linimasa."
+              emptyDescription={
+                isAuthenticated
+                  ? "Publish a post above or explore public user profiles to follow active creators!"
+                  : "Join CEBAS to publish your first post and follow creators!"
+              }
+            />
           </div>
         </section>
 

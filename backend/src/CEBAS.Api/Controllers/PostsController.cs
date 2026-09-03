@@ -42,25 +42,14 @@ public class PostsController : ControllerBase
         [FromQuery] int limit = 20,
         CancellationToken cancellationToken = default)
     {
-        var query = new GetFeedQuery(_currentUser.UserId, cursor, limit);
-        var result = await _sender.Send(query, cancellationToken);
-        return Ok(ApiResponse<CursorPagedResult<PostResponse>>.Ok(result));
-    }
+        if (_currentUser.UserId.HasValue)
+        {
+            var timelineQuery = new Features.Timelines.Home.GetHomeTimelineQuery(_currentUser.UserId.Value, cursor, limit);
+            var timelineResult = await _sender.Send(timelineQuery, cancellationToken);
+            return Ok(ApiResponse<CursorPagedResult<PostResponse>>.Ok(timelineResult));
+        }
 
-    /// <summary>
-    /// Retrieves posts published by a specific user by username for profile tabs with cursor pagination.
-    /// </summary>
-    [HttpGet("api/v1/users/{username}/posts")]
-    [ProducesResponseType(typeof(ApiResponse<CursorPagedResult<PostResponse>>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetailsResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetUserPosts(
-        [FromRoute] string username,
-        [FromQuery] string? filter = "posts",
-        [FromQuery] string? cursor = null,
-        [FromQuery] int limit = 20,
-        CancellationToken cancellationToken = default)
-    {
-        var query = new GetUserPostsQuery(username, _currentUser.UserId, filter, cursor, limit);
+        var query = new GetFeedQuery(_currentUser.UserId, cursor, limit);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<CursorPagedResult<PostResponse>>.Ok(result));
     }

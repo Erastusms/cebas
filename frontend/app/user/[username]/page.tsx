@@ -2,7 +2,7 @@
 
 import React, { useState, use } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, CheckCircle2, MessageSquare, Repeat2, Image as ImageIcon, Heart, Bookmark, UserX, Edit3, Camera } from "lucide-react";
+import { Calendar, CheckCircle2, Repeat2, UserX, Edit3, Camera } from "lucide-react";
 import { useProfile } from "../../../hooks/useProfile";
 import { useAuth } from "../../../hooks/useAuth";
 import { Button } from "../../../components/ui/button";
@@ -13,10 +13,13 @@ import { FollowStatusBadge } from "../../../components/social/FollowStatusBadge"
 import { UserActionMenu } from "../../../components/social/UserActionMenu";
 import { FollowListModal } from "../../../components/social/FollowListModal";
 import { BlockedProfileFallback } from "../../../components/social/BlockedProfileFallback";
-import { PostCard } from "../../../components/posts/PostCard";
 import { UserReplyCard } from "../../../components/posts/UserReplyCard";
+import { InfiniteFeed } from "../../../components/posts/InfiniteFeed";
 import { postsApi } from "../../../lib/api/posts";
+import { timelinesApi } from "../../../lib/api/timelines";
+import { engagementsApi } from "../../../lib/api/engagements";
 import { resolveBannerStyle } from "../../../lib/utils/gradients";
+import type { BookmarkedPost } from "../../../types/api";
 
 interface ProfilePageProps {
   params: Promise<{
@@ -45,24 +48,6 @@ export default function UserProfilePage({ params }: ProfilePageProps) {
 
   const queryClient = useQueryClient();
 
-  // Fetch User Posts for Posts, Media, Likes, and Bookmarks tabs
-  const {
-    data: userPostsData,
-    isLoading: isPostsLoading,
-    refetch: refetchUserPosts,
-  } = useQuery({
-    queryKey: ["user-posts", username, activeTab],
-    queryFn: async () => {
-      const res = await postsApi.getUserPosts(username, activeTab, null, 30);
-      return res.data;
-    },
-    enabled:
-      !!profile &&
-      (activeTab === "posts" ||
-        activeTab === "media" ||
-        activeTab === "likes" ||
-        activeTab === "bookmarks"),
-  });
 
   // Fetch User Replies for Replies tab
   const {
@@ -340,80 +325,27 @@ export default function UserProfilePage({ params }: ProfilePageProps) {
         {/* Tab Content */}
         <div className="p-4 sm:p-6">
           {activeTab === "posts" && (
-            <div>
-              {isPostsLoading ? (
-                <div className="space-y-4">
-                  <div className="rounded-2xl border border-border bg-card p-6 space-y-3 animate-pulse">
-                    <div className="flex items-center space-x-3">
-                      <div className="h-10 w-10 rounded-full bg-muted" />
-                      <div className="space-y-1.5 flex-1">
-                        <div className="h-4 w-32 rounded bg-muted" />
-                        <div className="h-3 w-20 rounded bg-muted" />
-                      </div>
-                    </div>
-                    <div className="h-12 w-full rounded bg-muted" />
-                  </div>
-                </div>
-              ) : userPostsData && userPostsData.items.length > 0 ? (
-                <div className="space-y-4">
-                  {userPostsData.items.map((post) => (
-                    <PostCard
-                      key={post.id}
-                      post={post}
-                      onDeleted={() => {
-                        queryClient.invalidateQueries({ queryKey: ["user-posts", username] });
-                        refetchUserPosts();
-                      }}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="p-12 text-center space-y-3">
-                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                    <MessageSquare className="h-6 w-6" />
-                  </div>
-                  <h3 className="font-semibold text-foreground">No posts yet</h3>
-                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                    When @{profile.username} publishes posts, they will appear here.
-                  </p>
-                </div>
-              )}
-            </div>
+            <InfiniteFeed
+              queryKey={["user-posts", profile.id]}
+              queryFn={async (cursor) => {
+                const res = await timelinesApi.getUserPosts(profile.id, "posts", cursor, 20);
+                return res.data;
+              }}
+              emptyTitle="Belum ada postingan"
+              emptyDescription={`Saat @${profile.username} membagikan postingan, mereka akan muncul di sini.`}
+            />
           )}
 
           {activeTab === "media" && (
-            <div>
-              {isPostsLoading ? (
-                <div className="space-y-4">
-                  <div className="rounded-2xl border border-border bg-card p-6 space-y-3 animate-pulse">
-                    <div className="h-48 w-full rounded-xl bg-muted" />
-                  </div>
-                </div>
-              ) : userPostsData && userPostsData.items.length > 0 ? (
-                <div className="space-y-4">
-                  {userPostsData.items.map((post) => (
-                    <PostCard
-                      key={post.id}
-                      post={post}
-                      onDeleted={() => {
-                        queryClient.invalidateQueries({ queryKey: ["user-posts", username] });
-                        refetchUserPosts();
-                      }}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="p-12 text-center space-y-3">
-                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                    <ImageIcon className="h-6 w-6" />
-                  </div>
-                  <h3 className="font-semibold text-foreground">No media shared</h3>
-                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                    Photos and media attached to posts by @{profile.username} will appear here.
-                  </p>
-                </div>
-              )}
-            </div>
+            <InfiniteFeed
+              queryKey={["user-media", profile.id]}
+              queryFn={async (cursor) => {
+                const res = await timelinesApi.getUserPosts(profile.id, "media", cursor, 20);
+                return res.data;
+              }}
+              emptyTitle="Belum ada media"
+              emptyDescription={`Foto dan media yang dibagikan oleh @${profile.username} akan muncul di sini.`}
+            />
           )}
 
           {activeTab === "replies" && (
@@ -451,7 +383,7 @@ export default function UserProfilePage({ params }: ProfilePageProps) {
                   </div>
                   <h3 className="font-semibold text-foreground">No replies yet</h3>
                   <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                    Conversations and replies by @{profile.username} will be visible here.
+                    Conversations and replies by @${profile.username} will be visible here.
                   </p>
                 </div>
               )}
@@ -459,89 +391,38 @@ export default function UserProfilePage({ params }: ProfilePageProps) {
           )}
 
           {activeTab === "likes" && (
-            <div>
-              {isPostsLoading ? (
-                <div className="space-y-4">
-                  <div className="rounded-2xl border border-border bg-card p-6 space-y-3 animate-pulse">
-                    <div className="flex items-center space-x-3">
-                      <div className="h-10 w-10 rounded-full bg-muted" />
-                      <div className="space-y-1.5 flex-1">
-                        <div className="h-4 w-32 rounded bg-muted" />
-                        <div className="h-3 w-20 rounded bg-muted" />
-                      </div>
-                    </div>
-                    <div className="h-12 w-full rounded bg-muted" />
-                  </div>
-                </div>
-              ) : userPostsData && userPostsData.items.length > 0 ? (
-                <div className="space-y-4">
-                  {userPostsData.items.map((post) => (
-                    <PostCard
-                      key={post.id}
-                      post={post}
-                      onDeleted={() => {
-                        queryClient.invalidateQueries({ queryKey: ["user-posts", username] });
-                        refetchUserPosts();
-                      }}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="p-12 text-center space-y-3">
-                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                    <Heart className="h-6 w-6" />
-                  </div>
-                  <h3 className="font-semibold text-foreground">No liked posts</h3>
-                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                    {isOwnProfile
-                      ? "You haven't liked any posts yet."
-                      : `Posts liked by @${profile.username} will show up here.`}
-                  </p>
-                </div>
-              )}
-            </div>
+            <InfiniteFeed
+              queryKey={["user-likes", profile.id]}
+              queryFn={async (cursor) => {
+                const res = await timelinesApi.getUserLikes(profile.id, cursor, 20);
+                return res.data;
+              }}
+              emptyTitle="Belum ada postingan yang disukai"
+              emptyDescription={
+                isOwnProfile
+                  ? "Anda belum menyukai postingan apa pun."
+                  : `Postingan yang disukai oleh @${profile.username} akan muncul di sini.`
+              }
+            />
           )}
 
           {activeTab === "bookmarks" && (
-            <div>
-              {isPostsLoading ? (
-                <div className="space-y-4">
-                  <div className="rounded-2xl border border-border bg-card p-6 space-y-3 animate-pulse">
-                    <div className="flex items-center space-x-3">
-                      <div className="h-10 w-10 rounded-full bg-muted" />
-                      <div className="space-y-1.5 flex-1">
-                        <div className="h-4 w-32 rounded bg-muted" />
-                        <div className="h-3 w-20 rounded bg-muted" />
-                      </div>
-                    </div>
-                    <div className="h-12 w-full rounded bg-muted" />
-                  </div>
-                </div>
-              ) : userPostsData && userPostsData.items.length > 0 ? (
-                <div className="space-y-4">
-                  {userPostsData.items.map((post) => (
-                    <PostCard
-                      key={post.id}
-                      post={post}
-                      onDeleted={() => {
-                        queryClient.invalidateQueries({ queryKey: ["user-posts", username] });
-                        refetchUserPosts();
-                      }}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="p-12 text-center space-y-3">
-                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                    <Bookmark className="h-6 w-6" />
-                  </div>
-                  <h3 className="font-semibold text-foreground">No bookmarks yet</h3>
-                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                    Save posts to find them here later.
-                  </p>
-                </div>
-              )}
-            </div>
+            <InfiniteFeed
+              queryKey={["user-bookmarks", profile.id]}
+              queryFn={async (cursor) => {
+                const res = await engagementsApi.getBookmarks(cursor, 20);
+                const normalizedItems = (res.data.items || []).map((item: BookmarkedPost) => ({
+                  ...item,
+                  id: item.id || item.postId || item.bookmarkId,
+                }));
+                return {
+                  ...res.data,
+                  items: normalizedItems,
+                };
+              }}
+              emptyTitle="Belum ada markah tersimpan"
+              emptyDescription="Simpan postingan untuk menemukannya di sini nanti."
+            />
           )}
         </div>
       </section>

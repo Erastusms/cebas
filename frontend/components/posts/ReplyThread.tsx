@@ -12,12 +12,14 @@ import type { ReplyItem as ReplyItemType, HierarchicalRepliesResult } from "../.
 interface ReplyThreadProps {
   postId: string;
   className?: string;
+  externalNewReplies?: ReplyItemType[];
   onReplyCountChange?: (count: number) => void;
 }
 
 export function ReplyThread({
   postId,
   className = "",
+  externalNewReplies = [],
   onReplyCountChange,
 }: ReplyThreadProps) {
   const [extraItems, setExtraItems] = useState<ReplyItemType[]>([]);
@@ -37,7 +39,8 @@ export function ReplyThread({
       const res = await postsApi.getReplies(postId, null, 100);
       return res.data;
     },
-    staleTime: 1000 * 30, // 30s
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const handleReplyAdded = (newReply: ReplyItemType) => {
@@ -100,9 +103,9 @@ export function ReplyThread({
     );
   }
 
-  // Combine query replies with newly added local replies
+  // Combine query replies with newly added local and external replies
   const serverItems = data?.items || [];
-  const allDisplayItems = [...serverItems, ...extraItems].filter(
+  const allDisplayItems = [...extraItems, ...externalNewReplies, ...serverItems].filter(
     (item, index, self) => self.findIndex((i) => i.id === item.id) === index
   );
 
@@ -111,6 +114,11 @@ export function ReplyThread({
       ? { ...item, isDeleted: true, content: "[This reply was deleted by the author]", author: null }
       : item
   );
+
+  const handleRefresh = async () => {
+    setExtraItems([]);
+    await refetch();
+  };
 
   return (
     <section className={`space-y-4 ${className}`} aria-label="Conversation Replies">
@@ -122,7 +130,7 @@ export function ReplyThread({
           type="button"
           variant="ghost"
           size="sm"
-          onClick={() => refetch()}
+          onClick={handleRefresh}
           disabled={isFetching}
           className="text-xs text-muted-foreground hover:text-foreground h-7 px-2"
         >

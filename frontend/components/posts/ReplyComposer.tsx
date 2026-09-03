@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Send, X, AlertCircle } from "lucide-react";
 import { Button } from "../ui/button";
 import { postsApi } from "../../lib/api/posts";
@@ -26,6 +27,7 @@ export function ReplyComposer({
   className = "",
   placeholder = "Write a reply...",
 }: ReplyComposerProps) {
+  const queryClient = useQueryClient();
   const { success, error: toastError } = useToast();
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,6 +53,13 @@ export function ReplyComposer({
 
       success("Reply posted!");
       setContent("");
+
+      // Reconcile and invalidate queries across the app
+      queryClient.invalidateQueries({ queryKey: ["post-replies", postId] });
+      queryClient.invalidateQueries({ queryKey: ["post-detail", postId] });
+      queryClient.invalidateQueries({ queryKey: ["timeline-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["user-posts"] });
+
       if (onReplyCreated) {
         onReplyCreated(response.data);
       }

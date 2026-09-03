@@ -35,7 +35,17 @@ public record PostResponse(
     bool IsDeleted,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt
-);
+)
+{
+    [System.Text.Json.Serialization.JsonPropertyName("has_liked")]
+    public bool HasLikedSnake => Liked;
+
+    [System.Text.Json.Serialization.JsonPropertyName("has_bookmarked")]
+    public bool HasBookmarkedSnake => Bookmarked;
+
+    public bool HasLiked => Liked;
+    public bool HasBookmarked => Bookmarked;
+}
 
 public record CreateReplyRequest(
     string Content,

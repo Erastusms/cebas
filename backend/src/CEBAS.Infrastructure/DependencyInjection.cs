@@ -73,10 +73,12 @@ public static class DependencyInjection
         services.AddSingleton<ISessionTokenService, SessionTokenService>();
 
         // 5. Repositories & Services
+        services.AddMemoryCache();
         services.AddScoped<IUserRepository, Persistence.Repositories.UserRepository>();
         services.AddScoped<ISessionRepository, Persistence.Repositories.SessionRepository>();
         services.AddScoped<IMediaRepository, Persistence.Repositories.MediaRepository>();
         services.AddScoped<IBlockIsolationService, BlockIsolationService>();
+        services.AddScoped<IAuthorProfileCache, AuthorProfileCache>();
 
         // 6. Object Storage Adapters
         services.AddSingleton<Storage.LocalFileStorageAdapter>();

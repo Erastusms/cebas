@@ -1,8 +1,8 @@
 "use client";
 
-import React, { use } from "react";
+import React, { useState, use } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, AlertCircle, RefreshCw } from "lucide-react";
 import { PostCard } from "../../../components/posts/PostCard";
 import { ReplyComposer } from "../../../components/posts/ReplyComposer";
@@ -10,7 +10,7 @@ import { ReplyThread } from "../../../components/posts/ReplyThread";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { Button } from "../../../components/ui/button";
 import { postsApi } from "../../../lib/api/posts";
-import type { Post } from "../../../types/api";
+import type { Post, ReplyItem as ReplyItemType } from "../../../types/api";
 
 interface PostDetailPageProps {
   params: Promise<{
@@ -22,6 +22,8 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const resolvedParams = use(params);
   const postId = resolvedParams.id;
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const [newReplies, setNewReplies] = useState<ReplyItemType[]>([]);
 
   const {
     data: post,
@@ -37,6 +39,13 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
       return res.data;
     },
   });
+
+  const handleReplyCreated = (newReply: ReplyItemType) => {
+    setNewReplies((prev) => [newReply, ...prev]);
+    queryClient.invalidateQueries({ queryKey: ["post-detail", postId] });
+    queryClient.invalidateQueries({ queryKey: ["post-replies", postId] });
+    refetch();
+  };
 
   if (isLoading) {
     return (
@@ -109,15 +118,14 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
         <ReplyComposer
           postId={post.id}
           placeholder={`Reply to @${post.author.username}...`}
-          onReplyCreated={() => {
-            refetch();
-          }}
+          onReplyCreated={handleReplyCreated}
         />
       </section>
 
       {/* Threaded Conversation Replies */}
       <ReplyThread
         postId={post.id}
+        externalNewReplies={newReplies}
         onReplyCountChange={() => {
           refetch();
         }}

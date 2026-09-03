@@ -39,4 +39,7 @@ public record BookmarkedPostResponse(
     bool IsDeleted,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt
-);
+)
+{
+    public Guid Id => PostId;
+}

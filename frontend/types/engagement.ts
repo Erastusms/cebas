@@ -15,4 +15,5 @@ export type BookmarkResponse = {
 export type BookmarkedPost = Post & {
   bookmarkId: string;
   bookmarkedAt: string;
+  postId?: string;
 };

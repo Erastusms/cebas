@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { ExternalLink, Smartphone, User, Bookmark, LogOut, ChevronDown } from "lucide-react";
+import { ExternalLink, Smartphone, User, Bookmark, LogOut, ChevronDown, Home } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { Button } from "../ui/button";
 
@@ -61,6 +61,14 @@ export function Navbar() {
 
         {/* Action Controls / Auth Status */}
         <div className="flex items-center space-x-2 sm:space-x-3">
+          <Link
+            href="/home"
+            className="hidden items-center space-x-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-muted sm:inline-flex"
+          >
+            <Home className="h-3.5 w-3.5 text-primary" />
+            <span>Linimasa</span>
+          </Link>
+
           <a
             href={`${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5226"}/swagger`}
             target="_blank"
@@ -124,7 +132,18 @@ export function Navbar() {
                   </div>
 
                   <div className="py-1 space-y-0.5">
-                    {/* Item 1: My Profile */}
+                    {/* Item 1: Linimasa */}
+                    <Link
+                      href="/home"
+                      onClick={() => setIsMenuOpen(false)}
+                      role="menuitem"
+                      className="flex items-center space-x-2.5 rounded-xl px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition"
+                    >
+                      <Home className="h-4 w-4 text-primary" />
+                      <span>Linimasa</span>
+                    </Link>
+
+                    {/* Item 2: My Profile */}
                     <Link
                       href={`/user/${encodeURIComponent(user.username)}`}
                       onClick={() => setIsMenuOpen(false)}

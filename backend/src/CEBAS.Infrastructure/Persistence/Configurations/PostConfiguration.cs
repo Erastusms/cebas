@@ -43,6 +43,9 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
             .HasDatabaseName("idx_posts_author_created");
 
         builder.HasIndex(p => new { p.CreatedAt, p.Id })
+            .HasDatabaseName("idx_posts_created_pagination");
+
+        builder.HasIndex(p => new { p.CreatedAt, p.Id })
             .HasDatabaseName("idx_posts_created_at");
 
         builder.HasIndex(p => p.IsDeleted)
