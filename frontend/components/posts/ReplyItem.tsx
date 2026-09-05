@@ -48,7 +48,7 @@ export function ReplyItem({
         {reply.isDeleted ? (
           // Soft-deleted state
           <div className="text-xs italic text-muted-foreground py-1">
-            <span>[This reply was deleted by the author]</span>
+            <span>{reply.content || "[This reply was deleted by the author]"}</span>
           </div>
         ) : (
           // Active reply state

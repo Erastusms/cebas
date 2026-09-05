@@ -361,4 +361,37 @@ public class SocialGraphSliceTests
         profile.Relationship.IsBlocked.Should().BeFalse();
         profile.Relationship.IsBlockedBy.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task GetPublicProfile_WhenFollowingSuspendedUser_ShouldExcludeFromFollowingCount()
+    {
+        using var dbContext = CreateDbContext();
+        var alice = User.Create("alice", "alice@test.com", "hash", "Alice Walker");
+        var johnDoe = User.Create("johndoe", "johndoe@test.com", "hash", "John Doe");
+        var bob = User.Create("bob", "bob@test.com", "hash", "Bob Active");
+
+        // John Doe gets suspended
+        johnDoe.Suspend("Community standards violation");
+
+        await dbContext.Users.AddRangeAsync(alice, johnDoe, bob);
+
+        // Alice follows John Doe (suspended) and Bob (active)
+        var f1 = Follow.Create(alice.Id, johnDoe.Id);
+        var f2 = Follow.Create(alice.Id, bob.Id);
+
+        // John Doe (suspended) also followed Alice
+        var f3 = Follow.Create(johnDoe.Id, alice.Id);
+
+        await dbContext.Follows.AddRangeAsync(f1, f2, f3);
+        await dbContext.SaveChangesAsync();
+
+        var handler = new GetPublicProfileQueryHandler(dbContext);
+        var profile = await handler.Handle(new GetPublicProfileQuery("alice", alice.Id), CancellationToken.None);
+
+        profile.Should().NotBeNull();
+        // Alice only has 1 active following (Bob), not John Doe
+        profile.Stats.FollowingCount.Should().Be(1);
+        // Alice has 0 active followers (John Doe is suspended)
+        profile.Stats.FollowerCount.Should().Be(0);
+    }
 }

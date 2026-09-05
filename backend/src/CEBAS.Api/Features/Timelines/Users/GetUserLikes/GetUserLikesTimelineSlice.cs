@@ -86,9 +86,9 @@ public sealed class GetUserLikesTimelineQueryHandler : IRequestHandler<GetUserLi
                 .FirstOrDefaultAsync(u => u.Username.ToLower() == normalized, cancellationToken);
         }
 
-        if (targetUser == null)
+        if (targetUser == null || targetUser.IsSuspended)
         {
-            _logger.LogInformation("user.likes: User '{UserIdOrUsername}' not found", request.UserIdOrUsername);
+            _logger.LogInformation("user.likes: User '{UserIdOrUsername}' not found or suspended", request.UserIdOrUsername);
             throw new NotFoundException($"User '{request.UserIdOrUsername}' was not found.");
         }
 
@@ -113,7 +113,7 @@ public sealed class GetUserLikesTimelineQueryHandler : IRequestHandler<GetUserLi
             .AsNoTracking()
             .Where(pl => pl.UserId == targetUser.Id)
             .Join(
-                _dbContext.Posts.AsNoTracking().Where(p => !p.IsDeleted),
+                _dbContext.Posts.AsNoTracking().Where(p => !p.IsDeleted && !p.IsHidden && !p.Author.IsSuspended),
                 pl => pl.PostId,
                 p => p.Id,
                 (pl, p) => new { Like = pl, Post = p }

@@ -42,9 +42,9 @@ public sealed class GetRepliesQueryHandler : IRequestHandler<GetRepliesQuery, Hi
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == request.PostId, cancellationToken);
 
-        if (post == null || post.IsDeleted)
+        if (post == null || post.IsDeleted || post.IsHidden)
         {
-            _logger.LogInformation("reply.get: Post {PostId} not found or soft-deleted", request.PostId);
+            _logger.LogInformation("reply.get: Post {PostId} not found, soft-deleted, or hidden", request.PostId);
             throw new NotFoundException($"Post with ID '{request.PostId}' was not found.");
         }
 
@@ -101,6 +101,7 @@ public sealed class GetRepliesQueryHandler : IRequestHandler<GetRepliesQuery, Hi
 
                 // If user is blocked, skip this branch unless there are visible child replies
                 bool isAuthorBlocked = blockedUserIds.Contains(reply.AuthorId);
+                bool isAuthorSuspended = reply.Author?.IsSuspended ?? false;
 
                 if (reply.IsDeleted)
                 {
@@ -112,6 +113,24 @@ public sealed class GetRepliesQueryHandler : IRequestHandler<GetRepliesQuery, Hi
                             reply.PostId,
                             reply.ParentReplyId,
                             "[This reply was deleted by the author]",
+                            null,
+                            depth,
+                            true,
+                            reply.CreatedAt,
+                            reply.UpdatedAt
+                        ));
+                    }
+                }
+                else if (isAuthorSuspended)
+                {
+                    // Suspended author: include placeholder if preserving child threads
+                    if (hasChildren)
+                    {
+                        flattenedHierarchy.Add(new ReplyResponse(
+                            reply.Id,
+                            reply.PostId,
+                            reply.ParentReplyId,
+                            "[Post is deleted]",
                             null,
                             depth,
                             true,

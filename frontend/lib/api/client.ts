@@ -2,8 +2,11 @@ import {
   ApiException,
   NetworkException,
   ProblemDetailsException,
+  RateLimitException,
 } from "./errors";
 import type { ProblemDetails, RequestOptions } from "./types";
+import { useRateLimitStore } from "../../stores/useRateLimitStore";
+
 
 export class ApiClient {
   private readonly baseUrl: string;
@@ -145,6 +148,7 @@ export class ApiClient {
 
   private async handleErrorResponse(response: Response): Promise<never> {
     const contentType = response.headers.get("content-type");
+    let errorJson: ProblemDetails | null = null;
 
     if (
       contentType &&
@@ -152,19 +156,41 @@ export class ApiClient {
         contentType.includes("application/json"))
     ) {
       try {
-        const errorJson = (await response.json()) as ProblemDetails;
-        if (
-          errorJson.title ||
-          errorJson.detail ||
-          errorJson.status ||
-          errorJson.errors
-        ) {
-          throw new ProblemDetailsException(errorJson, response.statusText);
+        errorJson = (await response.json()) as ProblemDetails;
+      } catch {
+        // Ignore JSON parse errors
+      }
+    }
+
+    // Specialized HTTP 429 handling with global countdown state
+    if (response.status === 429) {
+      const retryHeader = response.headers.get("retry-after");
+      let retrySeconds = 60;
+      if (retryHeader) {
+        const parsed = parseInt(retryHeader, 10);
+        if (!isNaN(parsed) && parsed > 0) {
+          retrySeconds = parsed;
         }
-      } catch (parseErr) {
-        if (parseErr instanceof ProblemDetailsException) {
-          throw parseErr;
-        }
+      }
+
+      const problem: ProblemDetails = errorJson ?? {
+        title: "Too Many Requests",
+        status: 429,
+        detail: `You're doing that a little too quickly. Please try again in ${retrySeconds} seconds.`,
+      };
+
+      useRateLimitStore.getState().setRateLimited(retrySeconds, "api", problem.detail);
+      throw new RateLimitException(problem, retrySeconds, response.statusText);
+    }
+
+    if (errorJson) {
+      if (
+        errorJson.title ||
+        errorJson.detail ||
+        errorJson.status ||
+        errorJson.errors
+      ) {
+        throw new ProblemDetailsException(errorJson, response.statusText);
       }
     }
 

@@ -78,6 +78,12 @@ public sealed class CreateReplyCommandHandler : IRequestHandler<CreateReplyComma
             throw new NotFoundException($"User with ID '{request.AuthorUserId}' was not found.");
         }
 
+        if (author.IsSuspended)
+        {
+            _logger.LogWarning("reply.create.failed: Suspended user {AuthorUserId} attempted to create reply", request.AuthorUserId);
+            throw new ForbiddenException("Your account has been suspended and cannot reply to posts.");
+        }
+
         // 2. Post existence and state
         var post = await _dbContext.Posts
             .FirstOrDefaultAsync(p => p.Id == request.PostId, cancellationToken);

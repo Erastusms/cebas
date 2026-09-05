@@ -87,9 +87,9 @@ public sealed class GetUserPostsTimelineQueryHandler : IRequestHandler<GetUserPo
                 .FirstOrDefaultAsync(u => u.Username.ToLower() == normalized, cancellationToken);
         }
 
-        if (targetUser == null)
+        if (targetUser == null || targetUser.IsSuspended)
         {
-            _logger.LogInformation("user.posts: User '{UserIdOrUsername}' not found", request.UserIdOrUsername);
+            _logger.LogInformation("user.posts: User '{UserIdOrUsername}' not found or suspended", request.UserIdOrUsername);
             throw new NotFoundException($"User '{request.UserIdOrUsername}' was not found.");
         }
 
@@ -129,13 +129,13 @@ public sealed class GetUserPostsTimelineQueryHandler : IRequestHandler<GetUserPo
 
             query = _dbContext.Posts
                 .AsNoTracking()
-                .Where(p => userBookmarkPostIds.Contains(p.Id) && !p.IsDeleted);
+                .Where(p => userBookmarkPostIds.Contains(p.Id) && !p.IsDeleted && !p.IsHidden && !p.Author.IsSuspended);
         }
         else
         {
             query = _dbContext.Posts
                 .AsNoTracking()
-                .Where(p => p.AuthorId == targetUser.Id && !p.IsDeleted);
+                .Where(p => p.AuthorId == targetUser.Id && !p.IsDeleted && !p.IsHidden);
 
             if (filter == "media")
             {

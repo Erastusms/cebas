@@ -50,11 +50,16 @@ public class UsersController : ControllerBase
     {
         if (Guid.TryParse(idOrUsername, out var guid))
         {
+            var userById = await _userRepository.GetByIdAsync(guid, cancellationToken);
+            if (userById == null || userById.IsSuspended)
+            {
+                throw new NotFoundException($"User '{idOrUsername}' was not found.");
+            }
             return guid;
         }
 
         var user = await _userRepository.GetByUsernameAsync(idOrUsername, cancellationToken);
-        if (user == null)
+        if (user == null || user.IsSuspended)
         {
             throw new NotFoundException($"User '{idOrUsername}' was not found.");
         }

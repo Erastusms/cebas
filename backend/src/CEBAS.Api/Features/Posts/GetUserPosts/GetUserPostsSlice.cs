@@ -45,9 +45,9 @@ public sealed class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Username.ToLower() == normalized, cancellationToken);
 
-        if (user == null)
+        if (user == null || user.IsSuspended)
         {
-            _logger.LogInformation("user.posts: User '@{Username}' not found", request.Username);
+            _logger.LogInformation("user.posts: User '@{Username}' not found or suspended", request.Username);
             throw new NotFoundException($"User '@{request.Username}' was not found.");
         }
 
@@ -80,7 +80,7 @@ public sealed class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery
                         .Include(p => p.Author)
                         .Include(p => p.MediaAttachments)
                             .ThenInclude(pm => pm.Media)
-                        .Where(p => !p.IsDeleted),
+                        .Where(p => !p.IsDeleted && !p.IsHidden && !p.Author.IsSuspended),
                     pl => pl.PostId,
                     p => p.Id,
                     (pl, p) => new { Like = pl, Post = p }
@@ -215,7 +215,7 @@ public sealed class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery
                         .Include(p => p.Author)
                         .Include(p => p.MediaAttachments)
                             .ThenInclude(pm => pm.Media)
-                        .Where(p => !p.IsDeleted),
+                        .Where(p => !p.IsDeleted && !p.IsHidden && !p.Author.IsSuspended),
                     pb => pb.PostId,
                     p => p.Id,
                     (pb, p) => new { Bookmark = pb, Post = p }
@@ -315,7 +315,7 @@ public sealed class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery
             .Include(p => p.Author)
             .Include(p => p.MediaAttachments)
                 .ThenInclude(pm => pm.Media)
-            .Where(p => p.AuthorId == user.Id && !p.IsDeleted);
+            .Where(p => p.AuthorId == user.Id && !p.IsDeleted && !p.IsHidden);
 
         if (filter == "media")
         {

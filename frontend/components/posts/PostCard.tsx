@@ -3,9 +3,11 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MessageSquare, MoreHorizontal, Trash2, CheckCircle2 } from "lucide-react";
+import { MessageSquare, MoreHorizontal, Trash2, CheckCircle2, Flag } from "lucide-react";
 import { PostMediaGrid } from "./PostMediaGrid";
 import { DeletePostModal } from "./DeletePostModal";
+import { ReportModal } from "../safety/ReportModal";
+
 import { LikeButton } from "./LikeButton";
 import { BookmarkButton } from "./BookmarkButton";
 import { useAuth } from "../../hooks/useAuth";
@@ -28,7 +30,9 @@ export function PostCard({
   const router = useRouter();
   const { user: currentUser } = useAuth();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
 
   const isOwner = !!(
     currentUser &&
@@ -50,6 +54,21 @@ export function PostCard({
       router.push(`/post/${post.id}`);
     }
   };
+
+  if (post.isDeleted || post.author.username === "deleted") {
+    return (
+      <article
+        onClick={handleCardClick}
+        className={`rounded-2xl border border-dashed border-border/80 bg-muted/20 p-4 sm:p-5 text-muted-foreground shadow-sm transition ${
+          !isDetailedView ? "hover:border-primary/40 cursor-pointer" : ""
+        } ${className}`}
+      >
+        <div className="flex items-center space-x-2 text-sm italic">
+          <span>{post.content || "[Post is deleted]"}</span>
+        </div>
+      </article>
+    );
+  }
 
   return (
     <>
@@ -108,8 +127,8 @@ export function PostCard({
             </div>
           </div>
 
-          {/* Owner Action Dropdown */}
-          {isOwner && (
+          {/* Post Actions Dropdown */}
+          {currentUser && (
             <div className="relative">
               <button
                 type="button"
@@ -128,17 +147,31 @@ export function PostCard({
                   className="absolute right-0 z-20 mt-1 w-36 rounded-xl border border-border bg-popover p-1 shadow-lg"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      setIsDeleteModalOpen(true);
-                    }}
-                    className="flex w-full items-center space-x-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 transition"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    <span>Delete Post</span>
-                  </button>
+                  {isOwner ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setIsDeleteModalOpen(true);
+                      }}
+                      className="flex w-full items-center space-x-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 transition"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>Delete Post</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setIsReportModalOpen(true);
+                      }}
+                      className="flex w-full items-center space-x-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 transition"
+                    >
+                      <Flag className="h-3.5 w-3.5" />
+                      <span>Report Post</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -202,6 +235,14 @@ export function PostCard({
           }}
         />
       )}
+
+      {/* Safety Report Modal */}
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        targetPostId={post.id}
+        targetName={`Post by @${post.author.username}`}
+      />
     </>
   );
 }

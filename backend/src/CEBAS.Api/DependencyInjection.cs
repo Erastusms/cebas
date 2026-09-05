@@ -59,7 +59,19 @@ public static class DependencyInjection
         .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, Authentication.CookieSessionAuthenticationHandler>(
             Authentication.CookieSessionAuthenticationHandler.SchemeName, _ => { });
 
-        services.AddAuthorization();
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy("ModeratorOnly", policy =>
+                policy.RequireRole("MODERATOR"));
+            options.AddPolicy("AdminOnly", policy =>
+                policy.RequireRole("ADMIN"));
+            options.AddPolicy("ModeratorOrAdmin", policy =>
+                policy.RequireRole("MODERATOR", "ADMIN"));
+        });
+
+        // 3.1 Distributed Rate Limiting Middleware
+        RateLimiting.RateLimitingRegistration.AddDistributedRateLimiting(services, configuration);
+
 
         // 4. Swagger / OpenAPI Documentation
         services.AddEndpointsApiExplorer();

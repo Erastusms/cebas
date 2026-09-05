@@ -67,6 +67,12 @@ public sealed class FollowUserCommandHandler : IRequestHandler<FollowUserCommand
             throw new ValidationException("Follow", "A user cannot follow themselves.");
         }
 
+        var actor = await _dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == request.ActorUserId, cancellationToken);
+        if (actor != null && actor.IsSuspended)
+        {
+            throw new ForbiddenException("Your account has been suspended and cannot follow users.");
+        }
+
         // 1. Target user existence check
         var targetExists = await _dbContext.Users
             .AsNoTracking()

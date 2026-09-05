@@ -44,9 +44,9 @@ public sealed class GetUserRepliesQueryHandler : IRequestHandler<GetUserRepliesQ
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Username.ToLower() == normalized, cancellationToken);
 
-        if (user == null)
+        if (user == null || user.IsSuspended)
         {
-            _logger.LogInformation("user.replies: User '@{Username}' not found", request.Username);
+            _logger.LogInformation("user.replies: User '@{Username}' not found or suspended", request.Username);
             throw new NotFoundException($"User '@{request.Username}' was not found.");
         }
 
@@ -74,7 +74,7 @@ public sealed class GetUserRepliesQueryHandler : IRequestHandler<GetUserRepliesQ
                 .ThenInclude(p => p!.Author)
             .Include(r => r.ParentReply)
                 .ThenInclude(pr => pr!.Author)
-            .Where(r => r.AuthorId == user.Id && !r.IsDeleted && r.Post != null && !r.Post.IsDeleted);
+            .Where(r => r.AuthorId == user.Id && !r.IsDeleted && r.Post != null && !r.Post.IsDeleted && !r.Post.IsHidden);
 
         // 4. Keyset cursor pagination
         if (!string.IsNullOrWhiteSpace(request.Cursor))
@@ -105,8 +105,14 @@ public sealed class GetUserRepliesQueryHandler : IRequestHandler<GetUserRepliesQ
             );
 
             // Determine recipient username (parent reply author or parent post author)
-            string? replyingToUsername = r.ParentReply?.Author?.Username ?? r.Post?.Author?.Username;
-            string? parentPostContent = r.Post?.Content;
+            string? replyingToUsername = (r.ParentReply?.Author?.IsSuspended == true)
+                ? "[suspended]"
+                : r.ParentReply?.Author?.Username ??
+                  ((r.Post?.Author?.IsSuspended == true) ? "[suspended]" : r.Post?.Author?.Username);
+
+            string? parentPostContent = (r.Post?.Author?.IsSuspended == true)
+                ? "[Post is deleted]"
+                : r.Post?.Content;
 
             return new UserReplyResponse(
                 r.Id,

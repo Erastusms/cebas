@@ -1,7 +1,9 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using CEBAS.Api.Authentication;
+using CEBAS.Api.RateLimiting;
 using CEBAS.Api.Features.Posts.CreatePost;
 using CEBAS.Api.Features.Posts.CreateReply;
 using CEBAS.Api.Features.Posts.DeletePost;
@@ -75,6 +77,7 @@ public class PostsController : ControllerBase
     /// Creates a new short-form post with optional text and up to 4 media image attachments.
     /// </summary>
     [Authorize(AuthenticationSchemes = CookieSessionAuthenticationHandler.SchemeName)]
+    [EnableRateLimiting(RateLimitingRegistration.PublishingPolicy)]
     [HttpPost("api/v1/posts")]
     [ProducesResponseType(typeof(ApiResponse<PostResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetailsResponse), StatusCodes.Status400BadRequest)]
@@ -136,6 +139,7 @@ public class PostsController : ControllerBase
     /// Creates a direct or nested reply to a post.
     /// </summary>
     [Authorize(AuthenticationSchemes = CookieSessionAuthenticationHandler.SchemeName)]
+    [EnableRateLimiting(RateLimitingRegistration.PublishingPolicy)]
     [HttpPost("api/v1/posts/{id}/replies")]
     [ProducesResponseType(typeof(ApiResponse<ReplyResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetailsResponse), StatusCodes.Status400BadRequest)]

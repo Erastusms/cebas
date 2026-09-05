@@ -7,9 +7,13 @@ using CEBAS.Api.Services;
 using CEBAS.Application.Common;
 using CEBAS.Application.Contracts.Users;
 
+using Microsoft.AspNetCore.RateLimiting;
+using CEBAS.Api.RateLimiting;
+
 namespace CEBAS.Api.Controllers;
 
 [ApiController]
+[EnableRateLimiting(RateLimitingRegistration.AuthenticationPolicy)]
 public class AuthController : ControllerBase
 {
     private readonly ISender _sender;

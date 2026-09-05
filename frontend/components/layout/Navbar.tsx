@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { ExternalLink, Smartphone, User, Bookmark, LogOut, ChevronDown, Home, Bell } from "lucide-react";
+import { ExternalLink, Smartphone, User, Bookmark, LogOut, ChevronDown, Home, Bell, Shield } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useUnreadNotificationCount } from "../../hooks/useNotifications";
 import { Button } from "../ui/button";
@@ -213,6 +213,19 @@ export function Navbar() {
                         <Smartphone className="h-4 w-4 text-muted-foreground" />
                         <span>My Sessions</span>
                       </Link>
+
+                      {/* Staff Moderation Dashboard */}
+                      {(user.role?.toUpperCase() === "MODERATOR" || user.role?.toUpperCase() === "ADMIN") && (
+                        <Link
+                          href="/admin/moderation"
+                          onClick={() => setIsMenuOpen(false)}
+                          role="menuitem"
+                          className="flex items-center space-x-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-amber-500 hover:bg-amber-500/10 transition"
+                        >
+                          <Shield className="h-4 w-4 text-amber-500" />
+                          <span>Moderasi</span>
+                        </Link>
+                      )}
                     </div>
 
                     <div className="border-t border-border/70 pt-1">

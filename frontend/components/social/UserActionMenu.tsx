@@ -5,8 +5,8 @@ import { MoreHorizontal, ShieldAlert, Flag, UserX } from "lucide-react";
 import { Dropdown, type DropdownItem } from "../ui/dropdown";
 import { Button } from "../ui/button";
 import { BlockConfirmModal } from "./BlockConfirmModal";
+import { ReportModal } from "../safety/ReportModal";
 import { useSocialGraph } from "../../hooks/useSocialGraph";
-import { useToast } from "../../hooks/useToast";
 
 export interface UserActionMenuProps {
   targetUserId: string;
@@ -22,18 +22,14 @@ export function UserActionMenu({
   className,
 }: UserActionMenuProps) {
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const { blockUser, unblockUser, isBlockingLoading, isUnblockingLoading } = useSocialGraph(
     targetUserId,
     targetUsername
   );
-  const { info } = useToast();
 
   const handleReport = () => {
-    // Reporting integration boundary (Phase 3 safety placeholder / future moderation integration)
-    info(
-      `Thank you. The report for @${targetUsername} has been submitted for moderation review.`,
-      "Report Submitted"
-    );
+    setIsReportModalOpen(true);
   };
 
   const handleUnblock = async () => {
@@ -95,6 +91,13 @@ export function UserActionMenu({
         }}
         targetUsername={targetUsername}
         isLoading={isBlockingLoading || isUnblockingLoading}
+      />
+
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        targetUserId={targetUserId}
+        targetName={`@${targetUsername}`}
       />
     </>
   );

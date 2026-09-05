@@ -57,13 +57,19 @@ public sealed class CreateLikeCommandHandler : IRequestHandler<CreateLikeCommand
 
     public async Task<LikeResponse> Handle(CreateLikeCommand request, CancellationToken cancellationToken)
     {
+        var actor = await _dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == request.ActorUserId, cancellationToken);
+        if (actor != null && actor.IsSuspended)
+        {
+            throw new ForbiddenException("Your account has been suspended and cannot like posts.");
+        }
+
         // 1. Post existence and eligibility check
         var post = await _dbContext.Posts
-            .FirstOrDefaultAsync(p => p.Id == request.PostId && !p.IsDeleted, cancellationToken);
+            .FirstOrDefaultAsync(p => p.Id == request.PostId && !p.IsDeleted && !p.IsHidden, cancellationToken);
 
         if (post == null)
         {
-            _logger.LogWarning("like.create.failed: Post {PostId} not found or deleted for actor {ActorUserId}",
+            _logger.LogWarning("like.create.failed: Post {PostId} not found, deleted, or hidden for actor {ActorUserId}",
                 request.PostId, request.ActorUserId);
             throw new NotFoundException($"Post with ID '{request.PostId}' was not found.");
         }

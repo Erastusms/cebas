@@ -17,6 +17,10 @@ public class Post : Entity
     public string Content { get; private set; } = string.Empty;
     public bool IsDeleted { get; private set; } = false;
     public DateTimeOffset? DeletedAt { get; private set; }
+    public bool IsHidden { get; private set; } = false;
+    public DateTimeOffset? HiddenAt { get; private set; }
+    public string? HiddenReason { get; private set; }
+
     public int ReplyCount { get; private set; } = 0;
     public int MediaCount { get; private set; } = 0;
     public int LikeCount { get; private set; } = 0;
@@ -120,5 +124,36 @@ public class Post : Entity
     {
         BookmarkCount = Math.Max(0, BookmarkCount - 1);
         UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void Hide(string reason)
+    {
+        if (IsHidden)
+        {
+            return;
+        }
+
+        var trimmedReason = string.IsNullOrWhiteSpace(reason) ? "Post hidden by moderator." : reason.Trim();
+        IsHidden = true;
+        HiddenAt = DateTimeOffset.UtcNow;
+        HiddenReason = trimmedReason;
+        UpdatedAt = DateTimeOffset.UtcNow;
+
+        AddDomainEvent(new PostHiddenDomainEvent(Id, AuthorId, HiddenReason, HiddenAt.Value));
+    }
+
+    public void Restore()
+    {
+        if (!IsHidden)
+        {
+            return;
+        }
+
+        IsHidden = false;
+        HiddenAt = null;
+        HiddenReason = null;
+        UpdatedAt = DateTimeOffset.UtcNow;
+
+        AddDomainEvent(new PostRestoredDomainEvent(Id, AuthorId, UpdatedAt.Value));
     }
 }

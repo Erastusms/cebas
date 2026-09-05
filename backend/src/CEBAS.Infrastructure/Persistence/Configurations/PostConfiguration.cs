@@ -17,7 +17,11 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
         builder.Property(p => p.Content).HasColumnName("content").HasMaxLength(1000).IsRequired();
         builder.Property(p => p.IsDeleted).HasColumnName("is_deleted").HasDefaultValue(false).IsRequired();
         builder.Property(p => p.DeletedAt).HasColumnName("deleted_at");
+        builder.Property(p => p.IsHidden).HasColumnName("is_hidden").HasDefaultValue(false).IsRequired();
+        builder.Property(p => p.HiddenAt).HasColumnName("hidden_at");
+        builder.Property(p => p.HiddenReason).HasColumnName("hidden_reason");
         builder.Property(p => p.ReplyCount).HasColumnName("reply_count").HasDefaultValue(0).IsRequired();
+
         builder.Property(p => p.MediaCount).HasColumnName("media_count").HasDefaultValue(0).IsRequired();
         builder.Property(p => p.LikeCount).HasColumnName("like_count").HasDefaultValue(0).IsRequired();
         builder.Property(p => p.BookmarkCount).HasColumnName("bookmark_count").HasDefaultValue(0).IsRequired();
@@ -50,6 +54,9 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
 
         builder.HasIndex(p => p.IsDeleted)
             .HasDatabaseName("idx_posts_is_deleted");
+
+        builder.HasIndex(p => p.IsHidden)
+            .HasDatabaseName("idx_posts_is_hidden");
 
         builder.HasIndex(p => p.AuthorId)
             .HasDatabaseName("idx_posts_author_id");

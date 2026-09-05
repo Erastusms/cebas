@@ -4,7 +4,9 @@ import "./globals.css";
 import { QueryProvider } from "../providers/query-provider";
 import { RealtimeProvider } from "../providers/RealtimeProvider";
 import { ToastContainer } from "../components/ui/toast";
+import { RateLimitBanner } from "../components/ui/RateLimitBanner";
 import { Navbar } from "../components/layout/Navbar";
+
 import { FloatingPostButton } from "../components/posts/FloatingPostButton";
 
 const inter = Inter({
@@ -31,7 +33,9 @@ export default function RootLayout({
             <Navbar />
             {children}
             <FloatingPostButton />
+            <RateLimitBanner />
             <ToastContainer />
+
           </RealtimeProvider>
         </QueryProvider>
       </body>

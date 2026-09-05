@@ -414,6 +414,6 @@ public class TimelineEndpointsIntegrationTests : IClassFixture<WebApplicationFac
         var res = await client.GetAsync($"/api/v1/posts/{postId}/replies");
         res.StatusCode.Should().Be(HttpStatusCode.OK);
         var raw = await res.Content.ReadAsStringAsync();
-        raw.Should().Contain("please wonder it to me");
+        raw.Should().Contain("Dramatis banget!");
     }
 }

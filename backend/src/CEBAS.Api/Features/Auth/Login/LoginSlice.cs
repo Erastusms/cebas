@@ -72,6 +72,11 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoginRes
             throw new UnauthorizedException("Invalid username/email or password.");
         }
 
+        if (user.IsSuspended)
+        {
+            throw new ForbiddenException("Your account has been suspended due to community standard violations.");
+        }
+
         // Generate 256-bit cryptographically secure raw token and hash with SHA-256 for DB
         var rawToken = _tokenService.GenerateRawToken();
         var tokenHash = _tokenService.ComputeTokenHash(rawToken);

@@ -57,10 +57,50 @@ public sealed class GetPostQueryHandler : IRequestHandler<GetPostQuery, PostResp
             }
         }
 
-        if (post == null || post.IsDeleted)
+        if (post == null || post.IsDeleted || post.IsHidden)
         {
-            _logger.LogInformation("post.get: Post {PostId} not found or soft-deleted", request.PostId);
+            _logger.LogInformation("post.get: Post {PostId} not found, soft-deleted, or hidden", request.PostId);
             throw new NotFoundException($"Post with ID '{request.PostId}' was not found.");
+        }
+
+        // Check if author is suspended
+        if (post.Author?.IsSuspended == true)
+        {
+            // If the author is suspended, only keep post if replies exist to preserve the conversation tree
+            bool hasReplies = await _dbContext.PostReplies
+                .AsNoTracking()
+                .AnyAsync(r => r.PostId == post.Id && !r.IsDeleted, cancellationToken);
+
+            if (!hasReplies)
+            {
+                _logger.LogInformation("post.get: Post {PostId} author is suspended and has no active replies", request.PostId);
+                throw new NotFoundException($"Post with ID '{request.PostId}' was not found.");
+            }
+
+            // Return masked post so conversation reply tree can still be viewed
+            var maskedAuthor = new PostAuthorDto(
+                post.AuthorId,
+                "deleted",
+                "Unavailable",
+                null,
+                false
+            );
+
+            return new PostResponse(
+                post.Id,
+                "[Post is deleted]",
+                maskedAuthor,
+                new List<PostMediaDto>(),
+                post.ReplyCount,
+                0,
+                0,
+                0,
+                false,
+                false,
+                true,
+                post.CreatedAt,
+                post.UpdatedAt
+            );
         }
 
         // 2. Server-side block isolation check

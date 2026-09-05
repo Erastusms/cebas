@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Users, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { Modal } from "../ui/modal";
@@ -29,6 +29,12 @@ export function FollowListModal({
   initialTab = "followers",
 }: FollowListModalProps) {
   const [tab, setTab] = useState<"followers" | "following">(initialTab);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   const followersQuery = useFollowers(isOpen && tab === "followers" ? targetUserId : undefined);
   const followingQuery = useFollowing(isOpen && tab === "following" ? targetUserId : undefined);

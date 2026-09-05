@@ -19,6 +19,9 @@ public class ApplicationDbContext : DbContext, IDbContext
     public DbSet<PostBookmark> PostBookmarks => Set<PostBookmark>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<OutboxEvent> OutboxEvents => Set<OutboxEvent>();
+    public DbSet<Report> Reports => Set<Report>();
+    public DbSet<ModerationAuditLog> ModerationAuditLogs => Set<ModerationAuditLog>();
+
 
     private readonly MediatR.IPublisher? _publisher;
 

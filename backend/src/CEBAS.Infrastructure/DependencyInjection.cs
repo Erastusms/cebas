@@ -81,7 +81,9 @@ public static class DependencyInjection
         services.AddScoped<IBlockIsolationService, BlockIsolationService>();
         services.AddScoped<IAuthorProfileCache, AuthorProfileCache>();
         services.AddScoped<IOutboxWriter, Services.OutboxWriter>();
+        services.AddSingleton<IRateLimiterService, Services.RedisRateLimiterService>();
         services.AddHostedService<Services.OutboxProcessorService>();
+
 
         // 6. Object Storage Adapters
         services.AddSingleton<Storage.LocalFileStorageAdapter>();

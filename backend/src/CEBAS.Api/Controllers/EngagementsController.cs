@@ -12,9 +12,13 @@ using CEBAS.Application.Common;
 using CEBAS.Application.Contracts.Engagements;
 using CEBAS.Domain.Exceptions;
 
+using Microsoft.AspNetCore.RateLimiting;
+using CEBAS.Api.RateLimiting;
+
 namespace CEBAS.Api.Controllers;
 
 [ApiController]
+[EnableRateLimiting(RateLimitingRegistration.EngagementPolicy)]
 public class EngagementsController : ControllerBase
 {
     private readonly ISender _sender;

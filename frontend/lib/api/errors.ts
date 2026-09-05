@@ -40,3 +40,18 @@ export class NetworkException extends Error {
     this.name = "NetworkException";
   }
 }
+
+export class RateLimitException extends ProblemDetailsException {
+  public readonly retryAfterSeconds: number;
+
+  constructor(
+    problem: ProblemDetails,
+    retryAfterSeconds = 60,
+    statusText = "Too Many Requests"
+  ) {
+    super(problem, statusText);
+    this.name = "RateLimitException";
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+

@@ -37,7 +37,7 @@ public sealed class GetPublicProfileQueryHandler : IRequestHandler<GetPublicProf
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Username.ToLower() == normalized, cancellationToken);
 
-        if (user == null)
+        if (user == null || user.IsSuspended)
         {
             throw new NotFoundException($"User '@{request.Username}' was not found.");
         }
@@ -76,15 +76,15 @@ public sealed class GetPublicProfileQueryHandler : IRequestHandler<GetPublicProf
 
         var followerCount = await _dbContext.Follows
             .AsNoTracking()
-            .CountAsync(f => f.FollowingId == user.Id, cancellationToken);
+            .CountAsync(f => f.FollowingId == user.Id && !f.Follower!.IsSuspended, cancellationToken);
 
         var followingCount = await _dbContext.Follows
             .AsNoTracking()
-            .CountAsync(f => f.FollowerId == user.Id, cancellationToken);
+            .CountAsync(f => f.FollowerId == user.Id && !f.Following!.IsSuspended, cancellationToken);
 
         var postCount = await _dbContext.Posts
             .AsNoTracking()
-            .CountAsync(p => p.AuthorId == user.Id && !p.IsDeleted, cancellationToken);
+            .CountAsync(p => p.AuthorId == user.Id && !p.IsDeleted && !p.IsHidden, cancellationToken);
 
         var stats = new UserProfileStats(
             PostCount: postCount,

@@ -145,3 +145,49 @@ public sealed record PostUnbookmarkedDomainEvent(
     DateTimeOffset OccurredAt
 ) : IDomainEvent;
 
+public sealed record ReportCreatedDomainEvent(
+    Guid ReportId,
+    Guid ReporterUserId,
+    Guid? TargetPostId,
+    Guid? TargetUserId,
+    string Category,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+public sealed record ReportResolvedDomainEvent(
+    Guid ReportId,
+    Guid ModeratorUserId,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+public sealed record ReportDismissedDomainEvent(
+    Guid ReportId,
+    Guid ModeratorUserId,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+public sealed record PostHiddenDomainEvent(
+    Guid PostId,
+    Guid AuthorId,
+    string Reason,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+public sealed record PostRestoredDomainEvent(
+    Guid PostId,
+    Guid AuthorId,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+public sealed record UserSuspendedDomainEvent(
+    Guid UserId,
+    string Reason,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+public sealed record UserReinstatedDomainEvent(
+    Guid UserId,
+    DateTimeOffset OccurredAt
+) : IDomainEvent;
+
+

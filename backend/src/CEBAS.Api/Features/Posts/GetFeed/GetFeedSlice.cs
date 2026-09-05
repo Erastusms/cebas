@@ -40,7 +40,8 @@ public sealed class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, CursorPa
             .Include(p => p.Author)
             .Include(p => p.MediaAttachments)
                 .ThenInclude(pm => pm.Media)
-            .Where(p => !p.IsDeleted);
+            .Where(p => !p.IsDeleted && !p.IsHidden && !p.Author.IsSuspended);
+
 
         // 1. Block isolation and personalized following timeline
         if (request.ViewerUserId.HasValue)

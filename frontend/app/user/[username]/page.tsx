@@ -438,8 +438,9 @@ export default function UserProfilePage({ params }: ProfilePageProps) {
 
       {/* Followers / Following List Modal Dialog */}
       <FollowListModal
+        key={`${profile.id}-${followListModalState.tab}`}
         isOpen={followListModalState.isOpen}
-        onClose={() => setFollowListModalState({ isOpen: false, tab: "followers" })}
+        onClose={() => setFollowListModalState((prev) => ({ ...prev, isOpen: false }))}
         targetUserId={profile.id}
         targetUsername={profile.username}
         targetDisplayName={profile.displayName}

@@ -80,6 +80,12 @@ public sealed class CreatePostCommandHandler : IRequestHandler<CreatePostCommand
             throw new NotFoundException($"Author with ID '{request.AuthorUserId}' was not found.");
         }
 
+        if (author.IsSuspended)
+        {
+            _logger.LogWarning("post.create.failed: Suspended user {AuthorUserId} attempted to create post", request.AuthorUserId);
+            throw new ForbiddenException("Your account has been suspended and cannot create posts.");
+        }
+
         var mediaIds = request.MediaIds ?? new List<Guid>();
 
         // 2. Validate media attachments (ownership, readiness, uniqueness)

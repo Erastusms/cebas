@@ -50,11 +50,11 @@ public sealed class GetFollowersQueryHandler : IRequestHandler<GetFollowersQuery
         // 1. Target user existence check
         var targetExists = await _dbContext.Users
             .AsNoTracking()
-            .AnyAsync(u => u.Id == request.TargetUserId, cancellationToken);
+            .AnyAsync(u => u.Id == request.TargetUserId && !u.IsSuspended, cancellationToken);
 
         if (!targetExists)
         {
-            _logger.LogWarning("social_graph.query.failed: Target user {TargetUserId} not found", request.TargetUserId);
+            _logger.LogWarning("social_graph.query.failed: Target user {TargetUserId} not found or suspended", request.TargetUserId);
             throw new NotFoundException($"User with ID '{request.TargetUserId}' was not found.");
         }
 
@@ -79,7 +79,7 @@ public sealed class GetFollowersQueryHandler : IRequestHandler<GetFollowersQuery
         // 3. Base query: get followers of target user (f.FollowingId == targetUserId)
         var query = _dbContext.Follows
             .AsNoTracking()
-            .Where(f => f.FollowingId == request.TargetUserId);
+            .Where(f => f.FollowingId == request.TargetUserId && !f.Follower.IsSuspended);
 
         // 4. Server-side block isolation: exclude followers blocked by or blocking current user
         if (request.CurrentUserId.HasValue)

@@ -41,10 +41,14 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired();
 
         builder.Property(u => u.IsVerified).HasColumnName("is_verified").IsRequired().HasDefaultValue(false);
+        builder.Property(u => u.IsSuspended).HasColumnName("is_suspended").IsRequired().HasDefaultValue(false);
+        builder.Property(u => u.SuspendedAt).HasColumnName("suspended_at");
+        builder.Property(u => u.SuspensionReason).HasColumnName("suspension_reason");
         builder.Property(u => u.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(u => u.UpdatedAt).HasColumnName("updated_at");
 
         builder.HasIndex(u => u.Username).HasDatabaseName("idx_users_username_lower");
         builder.HasIndex(u => u.Email).HasDatabaseName("idx_users_email_lower");
+        builder.HasIndex(u => u.IsSuspended).HasDatabaseName("idx_users_is_suspended");
     }
 }

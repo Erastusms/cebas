@@ -75,7 +75,9 @@ try
         app.UseHttpsRedirection();
     }
     app.UseAuthentication();
+    app.UseRateLimiter();
     app.UseAuthorization();
+
     app.MapControllers();
     app.MapHub<CEBAS.Api.Hubs.SocialHub>("/hubs/social");
 

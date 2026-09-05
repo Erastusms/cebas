@@ -19,6 +19,10 @@ public class User : Entity
     public Guid? BannerMediaId { get; private set; }
     public UserRole Role { get; private set; } = UserRole.User;
     public bool IsVerified { get; private set; } = false;
+    public bool IsSuspended { get; private set; } = false;
+    public DateTimeOffset? SuspendedAt { get; private set; }
+    public string? SuspensionReason { get; private set; }
+
 
     // Navigation properties
     public ICollection<Session> Sessions { get; private set; } = new List<Session>();
@@ -178,6 +182,37 @@ public class User : Entity
         UpdatedAt = DateTimeOffset.UtcNow;
 
         AddDomainEvent(new Events.BannerUpdatedDomainEvent(Id, null, BannerUrl, UpdatedAt.Value));
+    }
+
+    public void Suspend(string reason)
+    {
+        if (IsSuspended)
+        {
+            return;
+        }
+
+        var trimmedReason = string.IsNullOrWhiteSpace(reason) ? "Account suspended by moderator." : reason.Trim();
+        IsSuspended = true;
+        SuspendedAt = DateTimeOffset.UtcNow;
+        SuspensionReason = trimmedReason;
+        UpdatedAt = DateTimeOffset.UtcNow;
+
+        AddDomainEvent(new Events.UserSuspendedDomainEvent(Id, SuspensionReason, SuspendedAt.Value));
+    }
+
+    public void Reinstate()
+    {
+        if (!IsSuspended)
+        {
+            return;
+        }
+
+        IsSuspended = false;
+        SuspendedAt = null;
+        SuspensionReason = null;
+        UpdatedAt = DateTimeOffset.UtcNow;
+
+        AddDomainEvent(new Events.UserReinstatedDomainEvent(Id, UpdatedAt.Value));
     }
 }
 

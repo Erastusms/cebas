@@ -76,7 +76,7 @@ public sealed class GetHomeTimelineQueryHandler : IRequestHandler<GetHomeTimelin
             // - Dynamic bidirectional block filtering evaluated server-side in DB
             var query = _dbContext.Posts
                 .AsNoTracking()
-                .Where(p => !p.IsDeleted)
+                .Where(p => !p.IsDeleted && !p.IsHidden && !p.Author.IsSuspended)
                 .Where(p => p.AuthorId == viewerId ||
                             _dbContext.Follows
                                 .Where(f => f.FollowerId == viewerId)
