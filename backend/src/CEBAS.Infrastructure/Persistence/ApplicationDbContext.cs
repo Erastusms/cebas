@@ -17,6 +17,8 @@ public class ApplicationDbContext : DbContext, IDbContext
     public DbSet<PostReply> PostReplies => Set<PostReply>();
     public DbSet<PostLike> PostLikes => Set<PostLike>();
     public DbSet<PostBookmark> PostBookmarks => Set<PostBookmark>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<OutboxEvent> OutboxEvents => Set<OutboxEvent>();
 
     private readonly MediatR.IPublisher? _publisher;
 
@@ -38,7 +40,7 @@ public class ApplicationDbContext : DbContext, IDbContext
         modelBuilder.HasPostgresEnum<UserRole>("user_role_enum");
         modelBuilder.HasPostgresEnum<MediaStatus>("media_status_enum");
         modelBuilder.HasPostgresEnum("media_type_enum", ["IMAGE", "VIDEO", "AUDIO"]);
-        modelBuilder.HasPostgresEnum("notification_type_enum", ["POST_LIKED", "POST_REPLIED", "REPLY_LIKED", "USER_FOLLOWED", "USER_MENTIONED"]);
+        modelBuilder.HasPostgresEnum<NotificationType>("notification_type_enum");
 
         // Apply entity configurations from current assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);

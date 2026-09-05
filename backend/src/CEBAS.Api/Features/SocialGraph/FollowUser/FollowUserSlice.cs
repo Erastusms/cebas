@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using CEBAS.Application.Abstractions;
+using CEBAS.Application.Contracts.Events;
 using CEBAS.Application.Contracts.SocialGraph;
 using CEBAS.Domain.Entities;
 using CEBAS.Domain.Events;
@@ -34,17 +35,30 @@ public sealed class FollowUserCommandHandler : IRequestHandler<FollowUserCommand
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly IBlockIsolationService _blockIsolationService;
+    private readonly IOutboxWriter? _outboxWriter;
     private readonly ILogger<FollowUserCommandHandler> _logger;
 
     public FollowUserCommandHandler(
         ApplicationDbContext dbContext,
         IBlockIsolationService blockIsolationService,
         ILogger<FollowUserCommandHandler> logger)
+        : this(dbContext, blockIsolationService, null, logger)
+    {
+    }
+
+    [Microsoft.Extensions.DependencyInjection.ActivatorUtilitiesConstructor]
+    public FollowUserCommandHandler(
+        ApplicationDbContext dbContext,
+        IBlockIsolationService blockIsolationService,
+        IOutboxWriter? outboxWriter,
+        ILogger<FollowUserCommandHandler> logger)
     {
         _dbContext = dbContext;
         _blockIsolationService = blockIsolationService;
+        _outboxWriter = outboxWriter;
         _logger = logger;
     }
+
 
     public async Task<FollowResponse> Handle(FollowUserCommand request, CancellationToken cancellationToken)
     {
@@ -87,6 +101,53 @@ public sealed class FollowUserCommandHandler : IRequestHandler<FollowUserCommand
         try
         {
             await _dbContext.Follows.AddAsync(follow, cancellationToken);
+
+            // 5. Create notification for target user
+            var notification = Notification.Create(
+                recipientId: request.TargetUserId,
+                actorId: request.ActorUserId,
+                type: NotificationType.UserFollowed,
+                targetId: request.ActorUserId,
+                targetType: "USER"
+            );
+            await _dbContext.Notifications.AddAsync(notification, cancellationToken);
+
+            if (_outboxWriter != null)
+            {
+                await _outboxWriter.EnqueueAsync(
+                    eventType: "NOTIFICATION_CREATED",
+                    aggregateType: "Notification",
+                    aggregateId: notification.Id,
+                    payload: new NotificationCreatedPayload(
+                        notification.Id,
+                        notification.RecipientId,
+                        notification.ActorId,
+                        "USER_FOLLOWED",
+                        notification.TargetId,
+                        notification.TargetType,
+                        notification.CreatedAt
+                    ),
+                    actorId: request.ActorUserId,
+                    recipientId: request.TargetUserId,
+                    cancellationToken: cancellationToken
+                );
+
+                // 6. Enqueue FOLLOW_CREATED outbox event
+                await _outboxWriter.EnqueueAsync(
+                    eventType: "FOLLOW_CREATED",
+                    aggregateType: "Follow",
+                    aggregateId: follow.Id,
+                    payload: new FollowCreatedPayload(
+                        request.ActorUserId,
+                        request.TargetUserId,
+                        DateTimeOffset.UtcNow
+                    ),
+                    actorId: request.ActorUserId,
+                    recipientId: request.TargetUserId,
+                    cancellationToken: cancellationToken
+                );
+            }
+
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Social graph operation follow.created: Actor {ActorUserId} -> Target {TargetUserId}",

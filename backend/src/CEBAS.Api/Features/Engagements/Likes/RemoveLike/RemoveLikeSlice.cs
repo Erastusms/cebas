@@ -2,7 +2,9 @@ using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using CEBAS.Application.Abstractions;
 using CEBAS.Application.Contracts.Engagements;
+using CEBAS.Application.Contracts.Events;
 using CEBAS.Domain.Common;
 using CEBAS.Domain.Events;
 using CEBAS.Domain.Exceptions;
@@ -28,13 +30,24 @@ public sealed class RemoveLikeCommandValidator : AbstractValidator<RemoveLikeCom
 public sealed class RemoveLikeCommandHandler : IRequestHandler<RemoveLikeCommand, LikeResponse>
 {
     private readonly ApplicationDbContext _dbContext;
+    private readonly IOutboxWriter? _outboxWriter;
     private readonly ILogger<RemoveLikeCommandHandler> _logger;
 
     public RemoveLikeCommandHandler(
         ApplicationDbContext dbContext,
         ILogger<RemoveLikeCommandHandler> logger)
+        : this(dbContext, null, logger)
+    {
+    }
+
+    [Microsoft.Extensions.DependencyInjection.ActivatorUtilitiesConstructor]
+    public RemoveLikeCommandHandler(
+        ApplicationDbContext dbContext,
+        IOutboxWriter? outboxWriter,
+        ILogger<RemoveLikeCommandHandler> logger)
     {
         _dbContext = dbContext;
+        _outboxWriter = outboxWriter;
         _logger = logger;
     }
 
@@ -67,6 +80,24 @@ public sealed class RemoveLikeCommandHandler : IRequestHandler<RemoveLikeCommand
 
         // Raise domain event manually for unlike (entity is being removed, not created)
         post.AddDomainEvent(new PostUnlikedDomainEvent(request.PostId, request.ActorUserId, DateTimeOffset.UtcNow));
+
+        // Enqueue POST_UNLIKED outbox event for real-time post counter sync
+        if (_outboxWriter != null)
+        {
+            await _outboxWriter.EnqueueAsync(
+                eventType: "POST_UNLIKED",
+                aggregateType: "Post",
+                aggregateId: post.Id,
+                payload: new PostUnlikedPayload(
+                    post.Id,
+                    request.ActorUserId,
+                    post.LikeCount,
+                    DateTimeOffset.UtcNow
+                ),
+                actorId: request.ActorUserId,
+                cancellationToken: cancellationToken
+            );
+        }
 
         try
         {

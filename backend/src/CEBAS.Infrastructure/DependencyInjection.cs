@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.Configure<RedisOptions>(configuration.GetSection(RedisOptions.SectionName));
         services.Configure<MinioOptions>(configuration.GetSection(MinioOptions.SectionName));
         services.Configure<MediaStorageOptions>(configuration.GetSection(MediaStorageOptions.SectionName));
+        services.Configure<OutboxOptions>(configuration.GetSection(OutboxOptions.SectionName));
 
         var postgresOptions = configuration.GetSection(PostgresOptions.SectionName).Get<PostgresOptions>() ?? new PostgresOptions();
         var pgBouncerOptions = configuration.GetSection(PgBouncerOptions.SectionName).Get<PgBouncerOptions>() ?? new PgBouncerOptions();
@@ -79,6 +80,8 @@ public static class DependencyInjection
         services.AddScoped<IMediaRepository, Persistence.Repositories.MediaRepository>();
         services.AddScoped<IBlockIsolationService, BlockIsolationService>();
         services.AddScoped<IAuthorProfileCache, AuthorProfileCache>();
+        services.AddScoped<IOutboxWriter, Services.OutboxWriter>();
+        services.AddHostedService<Services.OutboxProcessorService>();
 
         // 6. Object Storage Adapters
         services.AddSingleton<Storage.LocalFileStorageAdapter>();

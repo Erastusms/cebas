@@ -96,6 +96,48 @@ public static class DependencyInjection
         // 6. FluentValidation
         FluentValidation.ServiceCollectionExtensions.AddValidatorsFromAssembly(services, typeof(DependencyInjection).Assembly);
 
+        // 7. SignalR with Redis Scale-Out Backplane (Resilient Fallback)
+        var signalRBuilder = services.AddSignalR();
+        var redisOptions = configuration.GetSection(CEBAS.Infrastructure.Configuration.RedisOptions.SectionName)
+            .Get<CEBAS.Infrastructure.Configuration.RedisOptions>() ?? new CEBAS.Infrastructure.Configuration.RedisOptions();
+
+        if (redisOptions.Enabled && !string.IsNullOrWhiteSpace(redisOptions.Host))
+        {
+            bool isRedisAvailable = false;
+            try
+            {
+                var probeConfig = StackExchange.Redis.ConfigurationOptions.Parse(redisOptions.ConnectionString);
+                probeConfig.ConnectTimeout = 1000;
+                probeConfig.SyncTimeout = 1000;
+                probeConfig.AbortOnConnectFail = true;
+                using var probeMux = StackExchange.Redis.ConnectionMultiplexer.Connect(probeConfig);
+                isRedisAvailable = probeMux.IsConnected;
+            }
+            catch
+            {
+                isRedisAvailable = false;
+            }
+
+            if (isRedisAvailable)
+            {
+                signalRBuilder.AddStackExchangeRedis(redisOptions.ConnectionString, options =>
+                {
+                    options.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("cebas:signalr");
+                });
+                Serilog.Log.Information("SignalR configured with StackExchangeRedis backplane ({Host}:{Port}).", redisOptions.Host, redisOptions.Port);
+            }
+            else
+            {
+                Serilog.Log.Warning("Redis is unreachable at {Host}:{Port}. SignalR using standalone in-memory HubLifetimeManager.", redisOptions.Host, redisOptions.Port);
+            }
+        }
+        else
+        {
+            Serilog.Log.Information("Redis is disabled. SignalR using standalone in-memory HubLifetimeManager.");
+        }
+
+        services.AddHostedService<Services.RedisEventDispatcherService>();
+
         return services;
     }
 }

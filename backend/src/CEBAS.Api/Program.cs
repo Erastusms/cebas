@@ -77,6 +77,7 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
+    app.MapHub<CEBAS.Api.Hubs.SocialHub>("/hubs/social");
 
     Log.Information("CEBAS API initialized successfully. Listening on configured ports.");
     app.Run();

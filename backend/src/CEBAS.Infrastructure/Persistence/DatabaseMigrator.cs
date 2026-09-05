@@ -32,11 +32,19 @@ public class DatabaseMigrator
 
             if (sqlFiles.Count > 0)
             {
+                var connection = _dbContext.Database.GetDbConnection();
+                if (connection.State != System.Data.ConnectionState.Open)
+                {
+                    await connection.OpenAsync(cancellationToken);
+                }
+
                 foreach (var sqlPath in sqlFiles)
                 {
                     _logger.LogInformation("Executing migration script from: {Path}", sqlPath);
                     var sql = await File.ReadAllTextAsync(sqlPath, cancellationToken);
-                    await _dbContext.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+                    using var command = connection.CreateCommand();
+                    command.CommandText = sql;
+                    await command.ExecuteNonQueryAsync(cancellationToken);
                     _logger.LogInformation("Migration script {File} executed successfully.", Path.GetFileName(sqlPath));
                 }
             }

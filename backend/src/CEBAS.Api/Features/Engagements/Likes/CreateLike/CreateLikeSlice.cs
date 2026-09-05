@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using CEBAS.Application.Abstractions;
 using CEBAS.Application.Contracts.Engagements;
+using CEBAS.Application.Contracts.Events;
 using CEBAS.Domain.Entities;
 using CEBAS.Domain.Events;
 using CEBAS.Domain.Exceptions;
@@ -30,15 +31,27 @@ public sealed class CreateLikeCommandHandler : IRequestHandler<CreateLikeCommand
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly IBlockIsolationService _blockIsolationService;
+    private readonly IOutboxWriter? _outboxWriter;
     private readonly ILogger<CreateLikeCommandHandler> _logger;
 
     public CreateLikeCommandHandler(
         ApplicationDbContext dbContext,
         IBlockIsolationService blockIsolationService,
         ILogger<CreateLikeCommandHandler> logger)
+        : this(dbContext, blockIsolationService, null, logger)
+    {
+    }
+
+    [Microsoft.Extensions.DependencyInjection.ActivatorUtilitiesConstructor]
+    public CreateLikeCommandHandler(
+        ApplicationDbContext dbContext,
+        IBlockIsolationService blockIsolationService,
+        IOutboxWriter? outboxWriter,
+        ILogger<CreateLikeCommandHandler> logger)
     {
         _dbContext = dbContext;
         _blockIsolationService = blockIsolationService;
+        _outboxWriter = outboxWriter;
         _logger = logger;
     }
 
@@ -83,6 +96,60 @@ public sealed class CreateLikeCommandHandler : IRequestHandler<CreateLikeCommand
         try
         {
             await _dbContext.PostLikes.AddAsync(like, cancellationToken);
+
+            // 5. Create notification if actor is not the post author
+            if (post.AuthorId != request.ActorUserId)
+            {
+                var notification = Notification.Create(
+                    recipientId: post.AuthorId,
+                    actorId: request.ActorUserId,
+                    type: NotificationType.PostLiked,
+                    targetId: post.Id,
+                    targetType: "POST"
+                );
+                await _dbContext.Notifications.AddAsync(notification, cancellationToken);
+
+                if (_outboxWriter != null)
+                {
+                    await _outboxWriter.EnqueueAsync(
+                        eventType: "NOTIFICATION_CREATED",
+                        aggregateType: "Notification",
+                        aggregateId: notification.Id,
+                        payload: new NotificationCreatedPayload(
+                            notification.Id,
+                            notification.RecipientId,
+                            notification.ActorId,
+                            "POST_LIKED",
+                            notification.TargetId,
+                            notification.TargetType,
+                            notification.CreatedAt
+                        ),
+                        actorId: request.ActorUserId,
+                        recipientId: post.AuthorId,
+                        cancellationToken: cancellationToken
+                    );
+                }
+            }
+
+            // 6. Append POST_LIKED outbox event for real-time post counter sync
+            if (_outboxWriter != null)
+            {
+                await _outboxWriter.EnqueueAsync(
+                    eventType: "POST_LIKED",
+                    aggregateType: "Post",
+                    aggregateId: post.Id,
+                    payload: new PostLikedPayload(
+                        post.Id,
+                        request.ActorUserId,
+                        post.LikeCount,
+                        post.AuthorId,
+                        DateTimeOffset.UtcNow
+                    ),
+                    actorId: request.ActorUserId,
+                    cancellationToken: cancellationToken
+                );
+            }
+
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("like.created: Actor {ActorUserId} liked post {PostId}, like_count={LikeCount}",

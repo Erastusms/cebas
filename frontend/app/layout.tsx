@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "../providers/query-provider";
+import { RealtimeProvider } from "../providers/RealtimeProvider";
 import { ToastContainer } from "../components/ui/toast";
 import { Navbar } from "../components/layout/Navbar";
 import { FloatingPostButton } from "../components/posts/FloatingPostButton";
@@ -26,10 +27,12 @@ export default function RootLayout({
     <html lang="en" className={inter.variable}>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased selection:bg-primary/20 selection:text-primary">
         <QueryProvider>
-          <Navbar />
-          {children}
-          <FloatingPostButton />
-          <ToastContainer />
+          <RealtimeProvider>
+            <Navbar />
+            {children}
+            <FloatingPostButton />
+            <ToastContainer />
+          </RealtimeProvider>
         </QueryProvider>
       </body>
     </html>

@@ -2,6 +2,8 @@ using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using CEBAS.Application.Abstractions;
+using CEBAS.Application.Contracts.Events;
 using CEBAS.Application.Contracts.Posts;
 using CEBAS.Domain.Entities;
 using CEBAS.Domain.Events;
@@ -44,13 +46,24 @@ public sealed class CreatePostCommandValidator : AbstractValidator<CreatePostCom
 public sealed class CreatePostCommandHandler : IRequestHandler<CreatePostCommand, PostResponse>
 {
     private readonly ApplicationDbContext _dbContext;
+    private readonly IOutboxWriter? _outboxWriter;
     private readonly ILogger<CreatePostCommandHandler> _logger;
 
     public CreatePostCommandHandler(
         ApplicationDbContext dbContext,
         ILogger<CreatePostCommandHandler> logger)
+        : this(dbContext, null, logger)
+    {
+    }
+
+    [Microsoft.Extensions.DependencyInjection.ActivatorUtilitiesConstructor]
+    public CreatePostCommandHandler(
+        ApplicationDbContext dbContext,
+        IOutboxWriter? outboxWriter,
+        ILogger<CreatePostCommandHandler> logger)
     {
         _dbContext = dbContext;
+        _outboxWriter = outboxWriter;
         _logger = logger;
     }
 
@@ -140,6 +153,26 @@ public sealed class CreatePostCommandHandler : IRequestHandler<CreatePostCommand
                         var postMedia = PostMedia.Create(post.Id, mediaEntities[i].Id, i);
                         await _dbContext.PostMedia.AddAsync(postMedia, cancellationToken);
                     }
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                }
+
+                // Append transactional outbox event
+                if (_outboxWriter != null)
+                {
+                    await _outboxWriter.EnqueueAsync(
+                        eventType: "POST_CREATED",
+                        aggregateType: "Post",
+                        aggregateId: post.Id,
+                        payload: new PostCreatedPayload(
+                            post.Id,
+                            post.AuthorId,
+                            post.Content,
+                            post.MediaCount,
+                            post.CreatedAt
+                        ),
+                        actorId: post.AuthorId,
+                        cancellationToken: cancellationToken
+                    );
                     await _dbContext.SaveChangesAsync(cancellationToken);
                 }
 

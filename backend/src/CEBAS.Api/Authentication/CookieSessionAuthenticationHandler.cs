@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
@@ -47,6 +47,11 @@ public class CookieSessionAuthenticationHandler : AuthenticationHandler<Authenti
             {
                 rawToken = headerValue["Bearer ".Length..].Trim();
             }
+        }
+        // 3. Fallback to access_token query parameter (standard for SignalR WebSockets)
+        else if (Request.Query.TryGetValue("access_token", out var queryToken) && !string.IsNullOrWhiteSpace(queryToken))
+        {
+            rawToken = queryToken.ToString();
         }
 
         if (string.IsNullOrWhiteSpace(rawToken))

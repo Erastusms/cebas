@@ -1,9 +1,10 @@
-﻿namespace CEBAS.Infrastructure.Configuration;
+namespace CEBAS.Infrastructure.Configuration;
 
 public class RedisOptions
 {
     public const string SectionName = "Redis";
 
+    public bool Enabled { get; set; } = true;
     public string Host { get; set; } = "localhost";
     public int Port { get; set; } = 6379;
     public string? Password { get; set; }

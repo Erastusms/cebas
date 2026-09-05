@@ -148,6 +148,43 @@ public class MigrationExecutionTests
         sqlContent.Should().Contain("banner_media_id UUID REFERENCES media(id)");
     }
 
+    [Fact]
+    public void NotificationsMigrationScript_ShouldExistAndContainRequiredSqlDirectives()
+    {
+        string? foundPath = FindMigrationScript("012_notifications.sql");
+
+        foundPath.Should().NotBeNull("012_notifications.sql migration file must exist in backend/migrations/sql/");
+
+        var sqlContent = File.ReadAllText(foundPath!);
+        sqlContent.Should().Contain("CREATE TABLE IF NOT EXISTS notifications");
+        sqlContent.Should().Contain("recipient_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE");
+        sqlContent.Should().Contain("actor_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE");
+        sqlContent.Should().Contain("type notification_type_enum NOT NULL");
+        sqlContent.Should().Contain("is_read BOOLEAN NOT NULL DEFAULT FALSE");
+        sqlContent.Should().Contain("idx_notifications_recipient_created");
+        sqlContent.Should().Contain("idx_notifications_recipient_unread");
+        sqlContent.Should().Contain("uq_notifications_like");
+        sqlContent.Should().Contain("uq_notifications_follow");
+    }
+
+    [Fact]
+    public void OutboxEventsMigrationScript_ShouldExistAndContainRequiredSqlDirectives()
+    {
+        string? foundPath = FindMigrationScript("013_outbox_events.sql");
+
+        foundPath.Should().NotBeNull("013_outbox_events.sql migration file must exist in backend/migrations/sql/");
+
+        var sqlContent = File.ReadAllText(foundPath!);
+        sqlContent.Should().Contain("CREATE TABLE IF NOT EXISTS outbox_events");
+        sqlContent.Should().Contain("event_type VARCHAR(100) NOT NULL");
+        sqlContent.Should().Contain("aggregate_type VARCHAR(100) NOT NULL");
+        sqlContent.Should().Contain("aggregate_id UUID NOT NULL");
+        sqlContent.Should().Contain("payload JSONB NOT NULL");
+        sqlContent.Should().Contain("status VARCHAR(20) NOT NULL DEFAULT 'PENDING'");
+        sqlContent.Should().Contain("idx_outbox_events_polling");
+        sqlContent.Should().Contain("chk_outbox_status");
+    }
+
     private static string? FindMigrationScript(string filename)
     {
         var currentDir = new DirectoryInfo(AppContext.BaseDirectory);

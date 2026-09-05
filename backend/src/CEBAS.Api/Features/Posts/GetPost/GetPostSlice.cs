@@ -39,6 +39,24 @@ public sealed class GetPostQueryHandler : IRequestHandler<GetPostQuery, PostResp
                 .ThenInclude(pm => pm.Media)
             .FirstOrDefaultAsync(p => p.Id == request.PostId, cancellationToken);
 
+        if (post == null)
+        {
+            // Fallback: If requested ID is a reply ID, resolve to the parent post
+            var reply = await _dbContext.PostReplies
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == request.PostId, cancellationToken);
+
+            if (reply != null)
+            {
+                post = await _dbContext.Posts
+                    .AsNoTracking()
+                    .Include(p => p.Author)
+                    .Include(p => p.MediaAttachments)
+                        .ThenInclude(pm => pm.Media)
+                    .FirstOrDefaultAsync(p => p.Id == reply.PostId, cancellationToken);
+            }
+        }
+
         if (post == null || post.IsDeleted)
         {
             _logger.LogInformation("post.get: Post {PostId} not found or soft-deleted", request.PostId);

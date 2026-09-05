@@ -10,6 +10,8 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { PostComposer } from "../../components/posts/PostComposer";
 import { InfiniteFeed } from "../../components/posts/InfiniteFeed";
+import { NewPostsBanner } from "../../components/posts/NewPostsBanner";
+import { useRealtimeEvent } from "../../hooks/useRealtime";
 import { timelinesApi } from "../../lib/api/timelines";
 
 export default function HomeFeedPage() {
@@ -17,6 +19,22 @@ export default function HomeFeedPage() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const [searchHandle, setSearchHandle] = useState("");
+  const [newPostsCount, setNewPostsCount] = useState(0);
+
+  // Real-time listener for incoming posts from followed users
+  useRealtimeEvent("NewPostAvailable", (data) => {
+    if (data.authorId !== user?.id) {
+      setNewPostsCount((prev) => prev + 1);
+    }
+  });
+
+  const handleBannerClick = () => {
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    queryClient.invalidateQueries({ queryKey: ["home-timeline", user?.id] });
+    setNewPostsCount(0);
+  };
 
   const handleSearchProfile = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +49,10 @@ export default function HomeFeedPage() {
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-background text-foreground">
-      <div className="mx-auto max-w-2xl space-y-6 px-4 py-6 sm:px-6">
+      <div className="mx-auto max-w-2xl space-y-6 px-4 py-6 sm:px-6 relative">
+        {/* Floating Pill Banner for New Incoming Posts */}
+        <NewPostsBanner count={newPostsCount} onClick={handleBannerClick} />
+
         {/* Post Creation Box for Authenticated Users */}
         {isAuthenticated && (
           <section aria-labelledby="create-post-title" className="space-y-3">

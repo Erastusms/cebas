@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using CEBAS.Application.Abstractions;
+using CEBAS.Application.Contracts.Events;
 using CEBAS.Application.Contracts.Posts;
 using CEBAS.Domain.Entities;
 using CEBAS.Domain.Events;
@@ -40,16 +41,28 @@ public sealed class CreateReplyCommandHandler : IRequestHandler<CreateReplyComma
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly IBlockIsolationService _blockIsolationService;
+    private readonly IOutboxWriter? _outboxWriter;
     private readonly ILogger<CreateReplyCommandHandler> _logger;
+
+    [Microsoft.Extensions.DependencyInjection.ActivatorUtilitiesConstructor]
+    public CreateReplyCommandHandler(
+        ApplicationDbContext dbContext,
+        IBlockIsolationService blockIsolationService,
+        IOutboxWriter? outboxWriter,
+        ILogger<CreateReplyCommandHandler> logger)
+    {
+        _dbContext = dbContext;
+        _blockIsolationService = blockIsolationService;
+        _outboxWriter = outboxWriter;
+        _logger = logger;
+    }
 
     public CreateReplyCommandHandler(
         ApplicationDbContext dbContext,
         IBlockIsolationService blockIsolationService,
         ILogger<CreateReplyCommandHandler> logger)
+        : this(dbContext, blockIsolationService, null, logger)
     {
-        _dbContext = dbContext;
-        _blockIsolationService = blockIsolationService;
-        _logger = logger;
     }
 
     public async Task<ReplyResponse> Handle(CreateReplyCommand request, CancellationToken cancellationToken)
@@ -90,9 +103,10 @@ public sealed class CreateReplyCommandHandler : IRequestHandler<CreateReplyComma
 
         // 3. Parent reply validation (if nested reply)
         int depth = 0;
+        PostReply? parentReply = null;
         if (request.ParentReplyId.HasValue)
         {
-            var parentReply = await _dbContext.PostReplies
+            parentReply = await _dbContext.PostReplies
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == request.ParentReplyId.Value, cancellationToken);
 
@@ -145,6 +159,98 @@ public sealed class CreateReplyCommandHandler : IRequestHandler<CreateReplyComma
 
                 // Atomic reply counter increment on post
                 post.IncrementReplyCount();
+
+                // 5. Create notification for post author if replying user is not the post author
+                if (post.AuthorId != request.AuthorUserId)
+                {
+                    var postAuthorNotification = Notification.Create(
+                        recipientId: post.AuthorId,
+                        actorId: request.AuthorUserId,
+                        type: NotificationType.PostReplied,
+                        targetId: post.Id,
+                        targetType: "POST",
+                        metadata: $"{{\"replyId\":\"{reply.Id}\",\"postId\":\"{post.Id}\"}}"
+                    );
+                    await _dbContext.Notifications.AddAsync(postAuthorNotification, cancellationToken);
+
+                    if (_outboxWriter != null)
+                    {
+                        await _outboxWriter.EnqueueAsync(
+                            eventType: "NOTIFICATION_CREATED",
+                            aggregateType: "Notification",
+                            aggregateId: postAuthorNotification.Id,
+                            payload: new NotificationCreatedPayload(
+                                postAuthorNotification.Id,
+                                postAuthorNotification.RecipientId,
+                                postAuthorNotification.ActorId,
+                                "POST_REPLIED",
+                                post.Id,
+                                "POST",
+                                postAuthorNotification.CreatedAt
+                            ),
+                            actorId: request.AuthorUserId,
+                            recipientId: post.AuthorId,
+                            cancellationToken: cancellationToken
+                        );
+                    }
+                }
+
+                // If nested reply, notify parent reply author if different from replying user and post author
+                if (parentReply != null &&
+                    parentReply.AuthorId != request.AuthorUserId &&
+                    parentReply.AuthorId != post.AuthorId)
+                {
+                    var parentAuthorNotification = Notification.Create(
+                        recipientId: parentReply.AuthorId,
+                        actorId: request.AuthorUserId,
+                        type: NotificationType.PostReplied,
+                        targetId: post.Id,
+                        targetType: "POST",
+                        metadata: $"{{\"replyId\":\"{reply.Id}\",\"postId\":\"{post.Id}\",\"parentReplyId\":\"{parentReply.Id}\"}}"
+                    );
+                    await _dbContext.Notifications.AddAsync(parentAuthorNotification, cancellationToken);
+
+                    if (_outboxWriter != null)
+                    {
+                        await _outboxWriter.EnqueueAsync(
+                            eventType: "NOTIFICATION_CREATED",
+                            aggregateType: "Notification",
+                            aggregateId: parentAuthorNotification.Id,
+                            payload: new NotificationCreatedPayload(
+                                parentAuthorNotification.Id,
+                                parentAuthorNotification.RecipientId,
+                                parentAuthorNotification.ActorId,
+                                "POST_REPLIED",
+                                post.Id,
+                                "POST",
+                                parentAuthorNotification.CreatedAt
+                            ),
+                            actorId: request.AuthorUserId,
+                            recipientId: parentReply.AuthorId,
+                            cancellationToken: cancellationToken
+                        );
+                    }
+                }
+
+                // 6. Enqueue REPLY_CREATED outbox event for real-time post comment distribution
+                if (_outboxWriter != null)
+                {
+                    await _outboxWriter.EnqueueAsync(
+                        eventType: "REPLY_CREATED",
+                        aggregateType: "Post",
+                        aggregateId: post.Id,
+                        payload: new ReplyCreatedPayload(
+                            reply.Id,
+                            post.Id,
+                            request.AuthorUserId,
+                            request.ParentReplyId,
+                            post.ReplyCount,
+                            DateTimeOffset.UtcNow
+                        ),
+                        actorId: request.AuthorUserId,
+                        cancellationToken: cancellationToken
+                    );
+                }
 
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);

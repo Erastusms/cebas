@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, use } from "react";
+import React, { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, AlertCircle, RefreshCw } from "lucide-react";
@@ -9,6 +9,7 @@ import { ReplyComposer } from "../../../components/posts/ReplyComposer";
 import { ReplyThread } from "../../../components/posts/ReplyThread";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { Button } from "../../../components/ui/button";
+import { useRealtime, useRealtimeEvent } from "../../../hooks/useRealtime";
 import { postsApi } from "../../../lib/api/posts";
 import type { Post, ReplyItem as ReplyItemType } from "../../../types/api";
 
@@ -23,7 +24,48 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const postId = resolvedParams.id;
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { joinPost, leavePost } = useRealtime();
   const [newReplies, setNewReplies] = useState<ReplyItemType[]>([]);
+
+  // Join the post SignalR group on mount and leave on unmount
+  useEffect(() => {
+    if (postId) {
+      joinPost(postId);
+      return () => {
+        leavePost(postId);
+      };
+    }
+  }, [postId, joinPost, leavePost]);
+
+  // Real-time synchronization for likes
+  useRealtimeEvent("PostLiked", (data) => {
+    if (data.postId === postId) {
+      queryClient.setQueryData<Post>(["post-detail", postId], (old) => {
+        if (!old) return old;
+        return { ...old, likeCount: data.likeCount };
+      });
+    }
+  });
+
+  useRealtimeEvent("PostUnliked", (data) => {
+    if (data.postId === postId) {
+      queryClient.setQueryData<Post>(["post-detail", postId], (old) => {
+        if (!old) return old;
+        return { ...old, likeCount: data.likeCount };
+      });
+    }
+  });
+
+  // Real-time synchronization for incoming replies
+  useRealtimeEvent("ReplyCreated", (data) => {
+    if (data.postId === postId) {
+      queryClient.setQueryData<Post>(["post-detail", postId], (old) => {
+        if (!old) return old;
+        return { ...old, replyCount: data.replyCount };
+      });
+      queryClient.invalidateQueries({ queryKey: ["post-replies", postId] });
+    }
+  });
 
   const {
     data: post,
@@ -39,6 +81,13 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
       return res.data;
     },
   });
+
+  // If the resolved post has a different ID (e.g. user navigated via a reply ID), update URL to the canonical post ID
+  useEffect(() => {
+    if (post && post.id !== postId) {
+      router.replace(`/post/${post.id}`);
+    }
+  }, [post, postId, router]);
 
   const handleReplyCreated = (newReply: ReplyItemType) => {
     setNewReplies((prev) => [newReply, ...prev]);
