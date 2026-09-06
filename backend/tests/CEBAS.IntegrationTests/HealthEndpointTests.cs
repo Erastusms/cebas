@@ -94,4 +94,45 @@ public class HealthEndpointTests : IClassFixture<WebApplicationFactory<Program>>
         problem.Title.Should().Be("Resource Not Found");
         problem.TraceId.Should().NotBeNullOrEmpty();
     }
+
+    [Fact]
+    public async Task GetHealthz_ShouldReturn200Ok_WithLivenessStatus()
+    {
+        // Act
+        var response = await _client.GetAsync("/healthz");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var content = await response.Content.ReadAsStringAsync();
+        using var json = JsonDocument.Parse(content);
+        json.RootElement.GetProperty("status").GetString().Should().Be("Healthy");
+        json.RootElement.GetProperty("process").GetString().Should().Be("alive");
+    }
+
+    [Fact]
+    public async Task GetReadyz_ShouldReturn200Ok_WithReadinessStatus()
+    {
+        // Act
+        var response = await _client.GetAsync("/readyz");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var content = await response.Content.ReadAsStringAsync();
+        using var json = JsonDocument.Parse(content);
+        json.RootElement.GetProperty("status").GetString().Should().Be("Ready");
+        json.RootElement.GetProperty("ready").GetBoolean().Should().BeTrue();
+        json.RootElement.GetProperty("checks").GetProperty("database").GetString().Should().Be("Healthy");
+    }
+
+    [Fact]
+    public async Task GetMetrics_ShouldReturn200Ok_WithPrometheusScrapingFormat()
+    {
+        // Act
+        var response = await _client.GetAsync("/metrics");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var content = await response.Content.ReadAsStringAsync();
+        content.Should().NotBeNullOrEmpty();
+    }
 }

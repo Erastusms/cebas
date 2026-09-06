@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using CEBAS.Application.Abstractions;
 using CEBAS.Application.Common;
 using CEBAS.Domain.Exceptions;
+using CEBAS.Infrastructure.Persistence;
 
 namespace CEBAS.Api.Controllers;
 
@@ -9,27 +10,79 @@ namespace CEBAS.Api.Controllers;
 public class HealthController : ControllerBase
 {
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ApplicationDbContext _dbContext;
 
-    public HealthController(IDateTimeProvider dateTimeProvider)
+    public HealthController(IDateTimeProvider dateTimeProvider, ApplicationDbContext dbContext)
     {
         _dateTimeProvider = dateTimeProvider;
+        _dbContext = dbContext;
     }
 
     /// <summary>
-    /// Basic liveness health endpoint.
+    /// Lightweight process liveness check (/healthz).
+    /// Determines whether the process is alive without expensive dependencies.
     /// </summary>
-    /// <response code="200">Returns service liveness status</response>
+    /// <response code="200">Process is alive</response>
+    [HttpGet("healthz")]
     [HttpGet("health")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
-    public IActionResult GetHealth()
+    public IActionResult GetLiveness()
     {
         return Ok(new
         {
             status = "Healthy",
+            process = "alive",
             timestamp = _dateTimeProvider.UtcNow,
             service = "CEBAS API",
             version = "v1"
         });
+    }
+
+    /// <summary>
+    /// Production readiness check (/readyz).
+    /// Verifies critical dependencies (database connectivity) before routing traffic.
+    /// </summary>
+    /// <response code="200">Application is ready to receive traffic</response>
+    /// <response code="503">Critical dependencies are unavailable</response>
+    [HttpGet("readyz")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> GetReadiness(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var dbOk = await _dbContext.Database.CanConnectAsync(cancellationToken);
+            if (!dbOk)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+                {
+                    status = "Unhealthy",
+                    ready = false,
+                    checks = new { database = "Unhealthy" },
+                    timestamp = _dateTimeProvider.UtcNow
+                });
+            }
+
+            return Ok(new
+            {
+                status = "Ready",
+                ready = true,
+                checks = new { database = "Healthy" },
+                timestamp = _dateTimeProvider.UtcNow,
+                service = "CEBAS API",
+                version = "v1"
+            });
+        }
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+            {
+                status = "Unhealthy",
+                ready = false,
+                checks = new { database = "Unhealthy" },
+                timestamp = _dateTimeProvider.UtcNow
+            });
+        }
     }
 
     /// <summary>

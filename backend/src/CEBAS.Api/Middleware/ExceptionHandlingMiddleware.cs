@@ -157,6 +157,9 @@ public class ExceptionHandlingMiddleware
                 statusCode, context.Request.Method, context.Request.Path, traceId, problemDetails.Detail);
         }
 
+        CEBAS.Infrastructure.Observability.CebasMetrics.HttpErrorCount.Add(1, 
+            new KeyValuePair<string, object?>("status_code", statusCode));
+
         context.Response.ContentType = "application/problem+json";
         context.Response.StatusCode = statusCode;
 

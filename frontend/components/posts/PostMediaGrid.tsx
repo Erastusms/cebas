@@ -85,10 +85,12 @@ export function PostMediaGrid({ media, className = "" }: PostMediaGridProps) {
     <>
       <div className={`overflow-hidden rounded-2xl border border-border bg-muted/20 ${className}`}>
         {count === 1 && (
-          <div className="relative aspect-auto max-h-[500px] w-full overflow-hidden">
+          <div className="relative aspect-[16/9] max-h-[500px] min-h-[220px] w-full overflow-hidden bg-muted/30">
             <img
               src={media[0].url}
               alt={media[0].originalFileName || "Post image"}
+              loading="lazy"
+              decoding="async"
               className="h-full w-full object-cover cursor-pointer transition hover:opacity-95"
               onClick={() => setSelectedIndex(0)}
             />
@@ -96,12 +98,14 @@ export function PostMediaGrid({ media, className = "" }: PostMediaGridProps) {
         )}
 
         {count === 2 && (
-          <div className="grid grid-cols-2 gap-1">
+          <div className="grid grid-cols-2 gap-1 bg-muted/30">
             {media.map((item, idx) => (
               <div key={item.id || idx} className="relative aspect-[4/3] w-full overflow-hidden">
                 <img
                   src={item.url}
                   alt={item.originalFileName || `Post image ${idx + 1}`}
+                  loading="lazy"
+                  decoding="async"
                   className="h-full w-full object-cover cursor-pointer transition hover:opacity-95"
                   onClick={() => setSelectedIndex(idx)}
                 />
@@ -111,11 +115,13 @@ export function PostMediaGrid({ media, className = "" }: PostMediaGridProps) {
         )}
 
         {count === 3 && (
-          <div className="grid grid-cols-2 gap-1">
+          <div className="grid grid-cols-2 gap-1 bg-muted/30">
             <div className="relative aspect-[4/3] w-full overflow-hidden row-span-2">
               <img
                 src={media[0].url}
                 alt={media[0].originalFileName || "Post image 1"}
+                loading="lazy"
+                decoding="async"
                 className="h-full w-full object-cover cursor-pointer transition hover:opacity-95"
                 onClick={() => setSelectedIndex(0)}
               />
@@ -125,6 +131,8 @@ export function PostMediaGrid({ media, className = "" }: PostMediaGridProps) {
                 <img
                   src={media[1].url}
                   alt={media[1].originalFileName || "Post image 2"}
+                  loading="lazy"
+                  decoding="async"
                   className="h-full w-full object-cover cursor-pointer transition hover:opacity-95"
                   onClick={() => setSelectedIndex(1)}
                 />
@@ -133,6 +141,8 @@ export function PostMediaGrid({ media, className = "" }: PostMediaGridProps) {
                 <img
                   src={media[2].url}
                   alt={media[2].originalFileName || "Post image 3"}
+                  loading="lazy"
+                  decoding="async"
                   className="h-full w-full object-cover cursor-pointer transition hover:opacity-95"
                   onClick={() => setSelectedIndex(2)}
                 />
@@ -142,12 +152,14 @@ export function PostMediaGrid({ media, className = "" }: PostMediaGridProps) {
         )}
 
         {count >= 4 && (
-          <div className="grid grid-cols-2 gap-1">
+          <div className="grid grid-cols-2 gap-1 bg-muted/30">
             {media.slice(0, 4).map((item, idx) => (
               <div key={item.id || idx} className="relative aspect-[4/3] w-full overflow-hidden">
                 <img
                   src={item.url}
                   alt={item.originalFileName || `Post image ${idx + 1}`}
+                  loading="lazy"
+                  decoding="async"
                   className="h-full w-full object-cover cursor-pointer transition hover:opacity-95"
                   onClick={() => setSelectedIndex(idx)}
                 />

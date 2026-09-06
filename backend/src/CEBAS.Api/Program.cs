@@ -1,19 +1,25 @@
 using Serilog;
 using Serilog.Events;
+using Serilog.Formatting.Compact;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
+using Npgsql;
 using CEBAS.Api;
 using CEBAS.Api.Configuration;
 using CEBAS.Api.Middleware;
 using CEBAS.Application;
 using CEBAS.Infrastructure;
+using CEBAS.Infrastructure.Observability;
 using CEBAS.Infrastructure.Persistence;
 
-// 1. Serilog Early Bootstrap Logger
+// 1. Serilog Early Bootstrap Logger with Sensitive Data Masking
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
     .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
     .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
     .Enrich.FromLogContext()
-    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}")
+    .Enrich.With<SensitiveDataMaskingEnricher>()
+    .WriteTo.Console(new CompactJsonFormatter())
     .CreateBootstrapLogger();
 
 try
@@ -27,13 +33,40 @@ try
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
         .Enrich.FromLogContext()
-        .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}"));
+        .Enrich.With<SensitiveDataMaskingEnricher>()
+        .WriteTo.Console(new CompactJsonFormatter()));
 
     // 3. Register Layer Dependency Injections
     builder.Services
         .AddApplication()
         .AddInfrastructure(builder.Configuration)
         .AddApi(builder.Configuration);
+
+    // 4. Register OpenTelemetry Tracing & Prometheus Metrics
+    builder.Services.AddOpenTelemetry()
+        .WithTracing(tracing => tracing
+            .AddSource(CebasActivitySource.SourceName)
+            .AddAspNetCoreInstrumentation(opts =>
+            {
+                opts.RecordException = true;
+                opts.Filter = httpContext =>
+                {
+                    var path = httpContext.Request.Path.Value ?? string.Empty;
+                    return !path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) &&
+                           !path.StartsWith("/healthz", StringComparison.OrdinalIgnoreCase) &&
+                           !path.StartsWith("/readyz", StringComparison.OrdinalIgnoreCase) &&
+                           !path.StartsWith("/metrics", StringComparison.OrdinalIgnoreCase);
+                };
+            })
+            .AddHttpClientInstrumentation()
+            .AddNpgsql())
+        .WithMetrics(metrics => metrics
+            .AddMeter(CebasMetrics.MeterName)
+            .AddMeter(TimelineMetrics.MeterName)
+            .AddMeter(OutboxMetrics.MeterName)
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddPrometheusExporter());
 
     var app = builder.Build();
 
@@ -78,6 +111,7 @@ try
     app.UseRateLimiter();
     app.UseAuthorization();
 
+    app.UseOpenTelemetryPrometheusScrapingEndpoint();
     app.MapControllers();
     app.MapHub<CEBAS.Api.Hubs.SocialHub>("/hubs/social");
 

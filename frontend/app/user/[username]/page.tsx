@@ -1,25 +1,5 @@
-"use client";
-
-import React, { useState, use } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, CheckCircle2, Repeat2, UserX, Edit3, Camera } from "lucide-react";
-import { useProfile } from "../../../hooks/useProfile";
-import { useAuth } from "../../../hooks/useAuth";
-import { Button } from "../../../components/ui/button";
-import { Skeleton } from "../../../components/ui/skeleton";
-import { EditProfileModal } from "../../../components/profile/EditProfileModal";
-import { FollowButton } from "../../../components/social/FollowButton";
-import { FollowStatusBadge } from "../../../components/social/FollowStatusBadge";
-import { UserActionMenu } from "../../../components/social/UserActionMenu";
-import { FollowListModal } from "../../../components/social/FollowListModal";
-import { BlockedProfileFallback } from "../../../components/social/BlockedProfileFallback";
-import { UserReplyCard } from "../../../components/posts/UserReplyCard";
-import { InfiniteFeed } from "../../../components/posts/InfiniteFeed";
-import { postsApi } from "../../../lib/api/posts";
-import { timelinesApi } from "../../../lib/api/timelines";
-import { engagementsApi } from "../../../lib/api/engagements";
-import { resolveBannerStyle } from "../../../lib/utils/gradients";
-import type { BookmarkedPost } from "../../../types/api";
+import type { Metadata } from "next";
+import { UserProfileClient } from "../../../components/profile/UserProfileClient";
 
 interface ProfilePageProps {
   params: Promise<{
@@ -27,425 +7,139 @@ interface ProfilePageProps {
   }>;
 }
 
-type TabType = "posts" | "replies" | "media" | "likes" | "bookmarks";
-
-export default function UserProfilePage({ params }: ProfilePageProps) {
-  const resolvedParams = use(params);
+export async function generateMetadata({ params }: ProfilePageProps): Promise<Metadata> {
+  const resolvedParams = await params;
   const rawUsername = resolvedParams.username;
   const username = decodeURIComponent(rawUsername);
+  const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-  const { profile, isLoading, isError } = useProfile(username);
-  const { user: currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabType>("posts");
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [followListModalState, setFollowListModalState] = useState<{
-    isOpen: boolean;
-    tab: "followers" | "following";
-  }>({
-    isOpen: false,
-    tab: "followers",
-  });
+  try {
+    const res = await fetch(`${apiUrl}/api/v1/users/${encodeURIComponent(username)}/profile`, {
+      next: { revalidate: 60 },
+    });
 
-  const queryClient = useQueryClient();
+    if (!res.ok) {
+      return {
+        title: "Pengguna Tidak Ditemukan",
+        description: `Akun @${username} tidak ditemukan di CEBAS.`,
+        robots: { index: false, follow: false },
+      };
+    }
 
+    const json = await res.json();
+    const profile = json.data;
 
-  // Fetch User Replies for Replies tab
-  const {
-    data: userRepliesData,
-    isLoading: isRepliesLoading,
-    refetch: refetchUserReplies,
-  } = useQuery({
-    queryKey: ["user-replies", username],
-    queryFn: async () => {
-      const res = await postsApi.getUserReplies(username, null, 30);
-      return res.data;
-    },
-    enabled: !!profile && activeTab === "replies",
-  });
+    if (!profile || profile.isSuspended) {
+      return {
+        title: "Akun Ditangguhkan",
+        robots: { index: false, follow: false },
+      };
+    }
 
-  const isOwnProfile = !!(
-    currentUser &&
-    profile &&
-    currentUser.username.toLowerCase() === profile.username.toLowerCase()
-  );
+    const title = `${profile.displayName} (@${profile.username})`;
+    const description =
+      profile.bio || `Lihat profil, postingan, dan linimasa @${profile.username} di CEBAS.`;
+    const ogImage = `/api/og/profile?username=${encodeURIComponent(username)}`;
 
-  if (isLoading) {
-    return (
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-        <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 space-y-6">
-          <div className="flex items-start justify-between">
-            <Skeleton className="h-24 w-24 rounded-full" />
-            <Skeleton className="h-9 w-28 rounded-lg" />
-          </div>
-          <div className="space-y-2">
-            <Skeleton className="h-6 w-48" />
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-16 w-full mt-4" />
-          </div>
-          <div className="flex space-x-6 pt-4 border-t border-border">
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-4 w-20" />
-          </div>
-        </div>
-      </main>
-    );
+    return {
+      title,
+      description,
+      alternates: {
+        canonical: `/user/${encodeURIComponent(username)}`,
+      },
+      openGraph: {
+        title: `${profile.displayName} (@${profile.username}) — CEBAS`,
+        description,
+        url: `/user/${encodeURIComponent(username)}`,
+        siteName: "CEBAS",
+        type: "profile",
+        images: [
+          {
+            url: ogImage,
+            width: 1200,
+            height: 630,
+            alt: `${profile.displayName} on CEBAS`,
+          },
+        ],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: `${profile.displayName} (@${profile.username})`,
+        description,
+        images: [ogImage],
+      },
+      robots: {
+        index: true,
+        follow: true,
+      },
+    };
+  } catch {
+    return {
+      title: `@${username} | CEBAS`,
+      description: `Lihat profil @${username} di platform CEBAS.`,
+    };
   }
+}
 
-  // Handle blocked profile states
-  if (profile?.relationship?.isBlocked) {
-    return (
-      <BlockedProfileFallback
-        targetUserId={profile.id}
-        targetUsername={profile.username}
-        isBlockedByMe={true}
-      />
-    );
+export default async function UserProfilePage({ params }: ProfilePageProps) {
+  const resolvedParams = await params;
+  const rawUsername = resolvedParams.username;
+  const username = decodeURIComponent(rawUsername);
+  const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+  let jsonLd: object | null = null;
+
+  try {
+    const res = await fetch(`${apiUrl}/api/v1/users/${encodeURIComponent(username)}/profile`, {
+      next: { revalidate: 60 },
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      const profile = json.data;
+
+      if (profile && !profile.isSuspended) {
+        jsonLd = {
+          "@context": "https://schema.org",
+          "@type": "ProfilePage",
+          "mainEntity": {
+            "@type": "Person",
+            "name": profile.displayName,
+            "alternateName": `@${profile.username}`,
+            "identifier": profile.username,
+            "description": profile.bio || "",
+            ...(profile.avatarUrl ? { "image": profile.avatarUrl } : {}),
+            "interactionStatistic": [
+              {
+                "@type": "InteractionCounter",
+                "interactionType": "https://schema.org/WriteAction",
+                "userInteractionCount": profile.stats?.postCount ?? 0,
+              },
+              {
+                "@type": "InteractionCounter",
+                "interactionType": "https://schema.org/FollowAction",
+                "userInteractionCount": profile.stats?.followerCount ?? 0,
+              },
+            ],
+          },
+        };
+      }
+    }
+  } catch {
+    // Graceful fallback during offline builds
   }
-
-  if (profile?.relationship?.isBlockedBy) {
-    return (
-      <BlockedProfileFallback
-        targetUsername={username}
-        isBlockedByMe={false}
-      />
-    );
-  }
-
-  if (isError || !profile) {
-    return (
-      <main className="max-w-4xl mx-auto px-4 py-16 text-center space-y-4">
-        <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-destructive/10 text-destructive mb-2">
-          <UserX className="h-8 w-8" />
-        </div>
-        <h1 className="text-2xl font-bold text-foreground">User Not Found</h1>
-        <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          The account @{username} doesn&apos;t exist or may have been deleted.
-        </p>
-      </main>
-    );
-  }
-
-  const formattedDate = new Date(profile.createdAt).toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
 
   return (
-    <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-      {/* Profile Header Card */}
-      <section className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-        {/* Background Banner with Deterministic Gradient Fallback */}
-        <div
-          className="w-full h-36 sm:h-48 relative overflow-hidden transition-all group"
-          style={resolveBannerStyle(profile.bannerUrl, profile.username)}
-        >
-          {isOwnProfile && (
-            <button
-              type="button"
-              onClick={() => setIsEditModalOpen(true)}
-              className="absolute top-3 right-3 inline-flex items-center space-x-1 bg-black/50 hover:bg-black/70 text-white text-xs font-medium px-2.5 py-1 rounded-md backdrop-blur-sm shadow-sm transition"
-            >
-              <Camera className="h-3.5 w-3.5 mr-1" />
-              <span>Edit Header</span>
-            </button>
-          )}
-        </div>
-
-        {/* Profile Details Container */}
-        <div className="px-6 pb-6 sm:px-8 sm:pb-8 pt-0 space-y-4">
-          {/* Top row with Overlapping Avatar and Action Buttons */}
-          <div className="flex items-end justify-between -mt-14 sm:-mt-16">
-            <div className="relative">
-              <div className="flex h-24 w-24 sm:h-28 sm:w-28 items-center justify-center rounded-full border-4 border-card bg-primary text-3xl font-extrabold text-primary-foreground shadow-md overflow-hidden flex-shrink-0">
-                {profile.avatarUrl ? (
-                  <img
-                    src={profile.avatarUrl}
-                    alt={profile.displayName || profile.username}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  profile.displayName?.charAt(0).toUpperCase() ||
-                  profile.username?.charAt(0).toUpperCase()
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-2 pb-1">
-              {isOwnProfile ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="font-medium"
-                  onClick={() => setIsEditModalOpen(true)}
-                >
-                  <Edit3 className="h-3.5 w-3.5 mr-1.5" />
-                  Edit Profile
-                </Button>
-              ) : (
-                <>
-                  <FollowButton
-                    targetUserId={profile.id}
-                    targetUsername={profile.username}
-                    isFollowing={profile.relationship?.isFollowing ?? false}
-                    isBlocked={profile.relationship?.isBlocked ?? false}
-                    size="sm"
-                  />
-                  <UserActionMenu
-                    targetUserId={profile.id}
-                    targetUsername={profile.username}
-                    isBlocked={profile.relationship?.isBlocked ?? false}
-                  />
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* User Identity Details with Tight Twitter-Style Typography */}
-          <div className="space-y-2">
-            <div>
-              <div className="flex items-center space-x-1.5 leading-tight">
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground leading-tight">
-                  {profile.displayName}
-                </h1>
-                {profile.isVerified && (
-                  <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 fill-blue-500/10 flex-shrink-0" aria-label="Verified Account" />
-                )}
-                <FollowStatusBadge
-                  isFollowing={profile.relationship?.isFollowing}
-                  isFollowedBy={profile.relationship?.isFollowedBy}
-                  isBlocked={profile.relationship?.isBlocked}
-                />
-              </div>
-              <p className="text-xs sm:text-sm text-muted-foreground font-normal leading-tight mt-0.5">
-                @{profile.username}
-              </p>
-            </div>
-
-            {profile.bio && (
-              <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed pt-0.5">
-                {profile.bio}
-              </p>
-            )}
-
-            <div className="flex items-center text-xs text-muted-foreground space-x-1 pt-0.5">
-              <Calendar className="h-3.5 w-3.5" />
-              <span>Joined {formattedDate}</span>
-            </div>
-          </div>
-
-          {/* Statistics Bar */}
-          <div className="flex items-center space-x-6 pt-3 border-t border-border text-sm">
-            <div className="space-x-1">
-              <span className="font-bold text-foreground">{profile.stats.postCount}</span>
-              <span className="text-muted-foreground text-xs">Posts</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setFollowListModalState({ isOpen: true, tab: "following" })}
-              className="space-x-1 hover:underline text-left cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded"
-            >
-              <span className="font-bold text-foreground">{profile.stats.followingCount}</span>
-              <span className="text-muted-foreground text-xs">Following</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setFollowListModalState({ isOpen: true, tab: "followers" })}
-              className="space-x-1 hover:underline text-left cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded"
-            >
-              <span className="font-bold text-foreground">{profile.stats.followerCount}</span>
-              <span className="text-muted-foreground text-xs">Followers</span>
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Profile Navigation Tabs */}
-      <section className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
-        <div className="flex border-b border-border text-sm font-medium">
-          <button
-            type="button"
-            onClick={() => setActiveTab("posts")}
-            className={`flex-1 py-3 text-center transition-colors border-b-2 ${
-              activeTab === "posts"
-                ? "border-primary text-primary font-semibold"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Posts
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("replies")}
-            className={`flex-1 py-3 text-center transition-colors border-b-2 ${
-              activeTab === "replies"
-                ? "border-primary text-primary font-semibold"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Replies
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("media")}
-            className={`flex-1 py-3 text-center transition-colors border-b-2 ${
-              activeTab === "media"
-                ? "border-primary text-primary font-semibold"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Media
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("likes")}
-            className={`flex-1 py-3 text-center transition-colors border-b-2 ${
-              activeTab === "likes"
-                ? "border-primary text-primary font-semibold"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Likes
-          </button>
-          {isOwnProfile && (
-            <button
-              type="button"
-              onClick={() => setActiveTab("bookmarks")}
-              className={`flex-1 py-3 text-center transition-colors border-b-2 ${
-                activeTab === "bookmarks"
-                  ? "border-primary text-primary font-semibold"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Bookmarks
-            </button>
-          )}
-        </div>
-
-        {/* Tab Content */}
-        <div className="p-4 sm:p-6">
-          {activeTab === "posts" && (
-            <InfiniteFeed
-              queryKey={["user-posts", profile.id]}
-              queryFn={async (cursor) => {
-                const res = await timelinesApi.getUserPosts(profile.id, "posts", cursor, 20);
-                return res.data;
-              }}
-              emptyTitle="Belum ada postingan"
-              emptyDescription={`Saat @${profile.username} membagikan postingan, mereka akan muncul di sini.`}
-            />
-          )}
-
-          {activeTab === "media" && (
-            <InfiniteFeed
-              queryKey={["user-media", profile.id]}
-              queryFn={async (cursor) => {
-                const res = await timelinesApi.getUserPosts(profile.id, "media", cursor, 20);
-                return res.data;
-              }}
-              emptyTitle="Belum ada media"
-              emptyDescription={`Foto dan media yang dibagikan oleh @${profile.username} akan muncul di sini.`}
-            />
-          )}
-
-          {activeTab === "replies" && (
-            <div>
-              {isRepliesLoading ? (
-                <div className="space-y-4">
-                  <div className="rounded-2xl border border-border bg-card p-6 space-y-3 animate-pulse">
-                    <div className="flex items-center space-x-3">
-                      <div className="h-10 w-10 rounded-full bg-muted" />
-                      <div className="space-y-1.5 flex-1">
-                        <div className="h-4 w-32 rounded bg-muted" />
-                        <div className="h-3 w-20 rounded bg-muted" />
-                      </div>
-                    </div>
-                    <div className="h-12 w-full rounded bg-muted" />
-                  </div>
-                </div>
-              ) : userRepliesData && userRepliesData.items.length > 0 ? (
-                <div className="space-y-4">
-                  {userRepliesData.items.map((reply) => (
-                    <UserReplyCard
-                      key={reply.id}
-                      reply={reply}
-                      onDeleted={() => {
-                        queryClient.invalidateQueries({ queryKey: ["user-replies", username] });
-                        refetchUserReplies();
-                      }}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="p-12 text-center space-y-3">
-                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                    <Repeat2 className="h-6 w-6" />
-                  </div>
-                  <h3 className="font-semibold text-foreground">No replies yet</h3>
-                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                    Conversations and replies by @${profile.username} will be visible here.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === "likes" && (
-            <InfiniteFeed
-              queryKey={["user-likes", profile.id]}
-              queryFn={async (cursor) => {
-                const res = await timelinesApi.getUserLikes(profile.id, cursor, 20);
-                return res.data;
-              }}
-              emptyTitle="Belum ada postingan yang disukai"
-              emptyDescription={
-                isOwnProfile
-                  ? "Anda belum menyukai postingan apa pun."
-                  : `Postingan yang disukai oleh @${profile.username} akan muncul di sini.`
-              }
-            />
-          )}
-
-          {activeTab === "bookmarks" && (
-            <InfiniteFeed
-              queryKey={["user-bookmarks", profile.id]}
-              queryFn={async (cursor) => {
-                const res = await engagementsApi.getBookmarks(cursor, 20);
-                const normalizedItems = (res.data.items || []).map((item: BookmarkedPost) => ({
-                  ...item,
-                  id: item.id || item.postId || item.bookmarkId,
-                }));
-                return {
-                  ...res.data,
-                  items: normalizedItems,
-                };
-              }}
-              emptyTitle="Belum ada markah tersimpan"
-              emptyDescription="Simpan postingan untuk menemukannya di sini nanti."
-            />
-          )}
-        </div>
-      </section>
-
-      {/* Edit Profile Modal Dialog */}
-      {currentUser && (
-        <EditProfileModal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          currentUser={currentUser}
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+          }}
         />
       )}
-
-      {/* Followers / Following List Modal Dialog */}
-      <FollowListModal
-        key={`${profile.id}-${followListModalState.tab}`}
-        isOpen={followListModalState.isOpen}
-        onClose={() => setFollowListModalState((prev) => ({ ...prev, isOpen: false }))}
-        targetUserId={profile.id}
-        targetUsername={profile.username}
-        targetDisplayName={profile.displayName}
-        initialTab={followListModalState.tab}
-      />
-    </main>
+      <UserProfileClient username={username} />
+    </>
   );
 }
