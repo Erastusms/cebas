@@ -86,6 +86,17 @@ try
         {
             Log.Warning(ex, "Database auto-migration/seed skipped on startup (DB might be offline or still starting up): {Message}", ex.Message);
         }
+
+        // 4b. Auto-initialize Elasticsearch indices & aliases if available
+        try
+        {
+            var searchIndexManager = scope.ServiceProvider.GetRequiredService<CEBAS.Application.Abstractions.Search.ISearchIndexManager>();
+            await searchIndexManager.EnsureIndicesExistAsync();
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Elasticsearch index initialization skipped on startup (cluster might be offline or still starting up): {Message}", ex.Message);
+        }
     }
 
     // 5. Middleware Pipeline

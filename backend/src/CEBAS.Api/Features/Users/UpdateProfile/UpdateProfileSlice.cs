@@ -56,14 +56,17 @@ public sealed class UpdateProfileCommandValidator : AbstractValidator<UpdateProf
 public sealed class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand, CurrentUserResponse>
 {
     private readonly ApplicationDbContext _dbContext;
+    private readonly CEBAS.Application.Abstractions.IOutboxWriter? _outboxWriter;
     private readonly ILogger<UpdateProfileCommandHandler> _logger;
 
     public UpdateProfileCommandHandler(
         ApplicationDbContext dbContext,
-        ILogger<UpdateProfileCommandHandler> logger)
+        ILogger<UpdateProfileCommandHandler> logger,
+        CEBAS.Application.Abstractions.IOutboxWriter? outboxWriter = null)
     {
         _dbContext = dbContext;
         _logger = logger;
+        _outboxWriter = outboxWriter;
     }
 
     public async Task<CurrentUserResponse> Handle(UpdateProfileCommand request, CancellationToken cancellationToken)
@@ -91,6 +94,25 @@ public sealed class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileC
             {
                 user.UpdateThemePreference(theme);
             }
+        }
+
+        if (_outboxWriter != null)
+        {
+            await _outboxWriter.EnqueueAsync(
+                eventType: "PROFILE_UPDATED",
+                aggregateType: "User",
+                aggregateId: user.Id,
+                payload: new CEBAS.Application.Contracts.Events.ProfileUpdatedPayload(
+                    user.Id,
+                    user.Username,
+                    user.DisplayName,
+                    user.Bio,
+                    user.AvatarUrl,
+                    DateTimeOffset.UtcNow
+                ),
+                actorId: user.Id,
+                cancellationToken: cancellationToken
+            );
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);

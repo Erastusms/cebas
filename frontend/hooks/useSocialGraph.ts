@@ -59,6 +59,7 @@ export function useSocialGraph(targetUserId?: string, targetUsername?: string) {
       }
       queryClient.invalidateQueries({ queryKey: ["following"] });
       queryClient.invalidateQueries({ queryKey: ["followers"] });
+      queryClient.invalidateQueries({ queryKey: ["search"] });
     },
   });
 
@@ -107,6 +108,7 @@ export function useSocialGraph(targetUserId?: string, targetUsername?: string) {
       }
       queryClient.invalidateQueries({ queryKey: ["following"] });
       queryClient.invalidateQueries({ queryKey: ["followers"] });
+      queryClient.invalidateQueries({ queryKey: ["search"] });
     },
   });
 

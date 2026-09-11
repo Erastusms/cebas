@@ -28,14 +28,17 @@ public sealed class DeletePostCommandValidator : AbstractValidator<DeletePostCom
 public sealed class DeletePostCommandHandler : IRequestHandler<DeletePostCommand, Unit>
 {
     private readonly ApplicationDbContext _dbContext;
+    private readonly CEBAS.Application.Abstractions.IOutboxWriter? _outboxWriter;
     private readonly ILogger<DeletePostCommandHandler> _logger;
 
     public DeletePostCommandHandler(
         ApplicationDbContext dbContext,
-        ILogger<DeletePostCommandHandler> logger)
+        ILogger<DeletePostCommandHandler> logger,
+        CEBAS.Application.Abstractions.IOutboxWriter? outboxWriter = null)
     {
         _dbContext = dbContext;
         _logger = logger;
+        _outboxWriter = outboxWriter;
     }
 
     public async Task<Unit> Handle(DeletePostCommand request, CancellationToken cancellationToken)
@@ -58,6 +61,23 @@ public sealed class DeletePostCommandHandler : IRequestHandler<DeletePostCommand
         }
 
         post.Delete();
+
+        if (_outboxWriter != null)
+        {
+            await _outboxWriter.EnqueueAsync(
+                eventType: "POST_DELETED",
+                aggregateType: "Post",
+                aggregateId: post.Id,
+                payload: new CEBAS.Application.Contracts.Events.PostDeletedPayload(
+                    post.Id,
+                    post.AuthorId,
+                    DateTimeOffset.UtcNow
+                ),
+                actorId: post.AuthorId,
+                cancellationToken: cancellationToken
+            );
+        }
+
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("post.delete.succeeded: Post {PostId} soft-deleted by owner {ActorUserId}",

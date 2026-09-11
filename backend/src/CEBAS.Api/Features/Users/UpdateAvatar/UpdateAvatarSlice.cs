@@ -30,14 +30,17 @@ public sealed class UpdateAvatarCommandValidator : AbstractValidator<UpdateAvata
 public sealed class UpdateAvatarCommandHandler : IRequestHandler<UpdateAvatarCommand, CurrentUserResponse>
 {
     private readonly ApplicationDbContext _dbContext;
+    private readonly CEBAS.Application.Abstractions.IOutboxWriter? _outboxWriter;
     private readonly ILogger<UpdateAvatarCommandHandler> _logger;
 
     public UpdateAvatarCommandHandler(
         ApplicationDbContext dbContext,
-        ILogger<UpdateAvatarCommandHandler> logger)
+        ILogger<UpdateAvatarCommandHandler> logger,
+        CEBAS.Application.Abstractions.IOutboxWriter? outboxWriter = null)
     {
         _dbContext = dbContext;
         _logger = logger;
+        _outboxWriter = outboxWriter;
     }
 
     public async Task<CurrentUserResponse> Handle(UpdateAvatarCommand request, CancellationToken cancellationToken)
@@ -60,6 +63,26 @@ public sealed class UpdateAvatarCommandHandler : IRequestHandler<UpdateAvatarCom
 
         // Domain validation: ownership, ready status, supported image mime type
         user.UpdateAvatar(media);
+
+        if (_outboxWriter != null)
+        {
+            await _outboxWriter.EnqueueAsync(
+                eventType: "PROFILE_UPDATED",
+                aggregateType: "User",
+                aggregateId: user.Id,
+                payload: new CEBAS.Application.Contracts.Events.ProfileUpdatedPayload(
+                    user.Id,
+                    user.Username,
+                    user.DisplayName,
+                    user.Bio,
+                    user.AvatarUrl,
+                    DateTimeOffset.UtcNow
+                ),
+                actorId: user.Id,
+                cancellationToken: cancellationToken
+            );
+        }
+
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Avatar updated for @{Username} [UserId: {UserId}, MediaId: {MediaId}]",

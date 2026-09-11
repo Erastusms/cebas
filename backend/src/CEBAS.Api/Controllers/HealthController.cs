@@ -11,11 +11,16 @@ public class HealthController : ControllerBase
 {
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ApplicationDbContext _dbContext;
+    private readonly CEBAS.Application.Abstractions.Search.ISearchIndexManager? _searchIndexManager;
 
-    public HealthController(IDateTimeProvider dateTimeProvider, ApplicationDbContext dbContext)
+    public HealthController(
+        IDateTimeProvider dateTimeProvider,
+        ApplicationDbContext dbContext,
+        CEBAS.Application.Abstractions.Search.ISearchIndexManager? searchIndexManager = null)
     {
         _dateTimeProvider = dateTimeProvider;
         _dbContext = dbContext;
+        _searchIndexManager = searchIndexManager;
     }
 
     /// <summary>
@@ -63,11 +68,25 @@ public class HealthController : ControllerBase
                 });
             }
 
+            string esStatus = "Unavailable";
+            if (_searchIndexManager != null)
+            {
+                try
+                {
+                    var health = await _searchIndexManager.GetHealthAsync(cancellationToken);
+                    esStatus = health.Available ? "Healthy" : "Unavailable";
+                }
+                catch
+                {
+                    esStatus = "Unavailable";
+                }
+            }
+
             return Ok(new
             {
                 status = "Ready",
                 ready = true,
-                checks = new { database = "Healthy" },
+                checks = new { database = "Healthy", elasticsearch = esStatus },
                 timestamp = _dateTimeProvider.UtcNow,
                 service = "CEBAS API",
                 version = "v1"

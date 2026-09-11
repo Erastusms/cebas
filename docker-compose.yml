@@ -1,4 +1,4 @@
-﻿version: "3.8"
+version: "3.8"
 
 services:
   postgres:
@@ -118,6 +118,29 @@ services:
     networks:
       - cebas-network
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: cebas-elasticsearch
+    restart: unless-stopped
+    environment:
+      - node.name=cebas-es01
+      - cluster.name=cebas-search-cluster
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "${ELASTICSEARCH_PORT:-9200}:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cat/health?h=status | grep -q 'green\\|yellow' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - cebas-network
+
 volumes:
   postgres_data:
     name: cebas_postgres_data
@@ -125,8 +148,11 @@ volumes:
     name: cebas_redis_data
   minio_data:
     name: cebas_minio_data
+  elasticsearch_data:
+    name: cebas_elasticsearch_data
 
 networks:
   cebas-network:
     name: cebas-network
     driver: bridge
+

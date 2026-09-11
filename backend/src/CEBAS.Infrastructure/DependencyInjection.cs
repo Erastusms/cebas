@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.Configure<MinioOptions>(configuration.GetSection(MinioOptions.SectionName));
         services.Configure<MediaStorageOptions>(configuration.GetSection(MediaStorageOptions.SectionName));
         services.Configure<OutboxOptions>(configuration.GetSection(OutboxOptions.SectionName));
+        services.Configure<ElasticsearchOptions>(configuration.GetSection(ElasticsearchOptions.SectionName));
 
         var postgresOptions = configuration.GetSection(PostgresOptions.SectionName).Get<PostgresOptions>() ?? new PostgresOptions();
         var pgBouncerOptions = configuration.GetSection(PgBouncerOptions.SectionName).Get<PgBouncerOptions>() ?? new PgBouncerOptions();
@@ -83,6 +84,33 @@ public static class DependencyInjection
         services.AddScoped<IOutboxWriter, Services.OutboxWriter>();
         services.AddSingleton<IRateLimiterService, Services.RedisRateLimiterService>();
         services.AddHostedService<Services.OutboxProcessorService>();
+
+        // 5b. Elasticsearch Client & Search Services
+        services.AddSingleton<Elastic.Clients.Elasticsearch.ElasticsearchClient>(sp =>
+        {
+            var esOptions = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<ElasticsearchOptions>>().Value;
+            var settings = new Elastic.Clients.Elasticsearch.ElasticsearchClientSettings(new Uri(esOptions.Url))
+                .RequestTimeout(TimeSpan.FromSeconds(Math.Max(2, esOptions.RequestTimeoutSeconds)))
+                .DefaultFieldNameInferrer(p => System.Text.Json.JsonNamingPolicy.SnakeCaseLower.ConvertName(p));
+
+            if (!string.IsNullOrWhiteSpace(esOptions.Username) && !string.IsNullOrWhiteSpace(esOptions.Password))
+            {
+                settings.Authentication(new Elastic.Transport.BasicAuthentication(esOptions.Username, esOptions.Password));
+            }
+
+            if (esOptions.EnableDebugMode)
+            {
+                settings.EnableDebugMode();
+            }
+
+            return new Elastic.Clients.Elasticsearch.ElasticsearchClient(settings);
+        });
+
+        services.AddScoped<CEBAS.Application.Abstractions.Search.ISearchIndexManager, Search.ElasticsearchIndexManager>();
+        services.AddScoped<CEBAS.Application.Abstractions.Search.ISearchService, Search.ElasticsearchSearchService>();
+        services.AddScoped<CEBAS.Application.Abstractions.Search.ISearchProjectionService, Search.ElasticsearchProjectionService>();
+        services.AddScoped<CEBAS.Application.Abstractions.Search.ISearchReindexer, Search.ElasticsearchReindexer>();
+
 
 
         // 6. Object Storage Adapters

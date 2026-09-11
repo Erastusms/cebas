@@ -80,3 +80,45 @@ public sealed record NotificationCreatedPayload(
     string? TargetType,
     DateTimeOffset CreatedAt
 );
+
+public sealed record PostDeletedPayload(
+    Guid PostId,
+    Guid AuthorId,
+    DateTimeOffset OccurredAt
+);
+
+public sealed record PostUpdatedPayload(
+    Guid PostId,
+    Guid AuthorId,
+    string? Content,
+    DateTimeOffset OccurredAt
+);
+
+public sealed record ProfileUpdatedPayload(
+    Guid UserId,
+    string Username,
+    string DisplayName,
+    string? Bio,
+    string? AvatarUrl,
+    DateTimeOffset OccurredAt
+);
+
+public sealed record UserUpdatedPayload(
+    Guid UserId,
+    string Username,
+    string DisplayName,
+    string? Bio,
+    string? AvatarUrl,
+    string Status,
+    DateTimeOffset OccurredAt
+);
+
+public sealed record UserCreatedPayload(
+    Guid UserId,
+    string Username,
+    string DisplayName,
+    string? Bio,
+    string? AvatarUrl,
+    DateTimeOffset CreatedAt
+);
+

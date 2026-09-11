@@ -11,6 +11,7 @@ export interface FollowButtonProps {
   targetUserId: string;
   targetUsername?: string;
   isFollowing?: boolean;
+  initialIsFollowing?: boolean;
   isBlocked?: boolean;
   onFollowChange?: (isFollowing: boolean) => void;
   size?: "sm" | "md" | "lg";
@@ -20,7 +21,8 @@ export interface FollowButtonProps {
 export function FollowButton({
   targetUserId,
   targetUsername,
-  isFollowing = false,
+  isFollowing,
+  initialIsFollowing,
   isBlocked = false,
   onFollowChange,
   size = "sm",
@@ -32,6 +34,17 @@ export function FollowButton({
     targetUsername
   );
   const [isHovered, setIsHovered] = useState(false);
+
+  const effectiveInitialFollowing = isFollowing ?? initialIsFollowing ?? false;
+  const [internalFollowing, setInternalFollowing] = useState(effectiveInitialFollowing);
+
+  React.useEffect(() => {
+    if (isFollowing !== undefined) {
+      setInternalFollowing(isFollowing);
+    } else if (initialIsFollowing !== undefined) {
+      setInternalFollowing(initialIsFollowing);
+    }
+  }, [isFollowing, initialIsFollowing]);
 
   // If user is viewing their own profile, do not render a follow button
   if (
@@ -69,20 +82,25 @@ export function FollowButton({
       return;
     }
 
+    const previousFollowing = internalFollowing;
+    const nextFollowing = !previousFollowing;
+    setInternalFollowing(nextFollowing);
+    onFollowChange?.(nextFollowing);
+
     try {
-      if (isFollowing) {
-        onFollowChange?.(false);
+      if (previousFollowing) {
         await unfollowUser(targetUserId);
       } else {
-        onFollowChange?.(true);
         await followUser(targetUserId);
       }
     } catch {
-      // Rollback is automatically handled in useSocialGraph hook
+      // Rollback on error
+      setInternalFollowing(previousFollowing);
+      onFollowChange?.(previousFollowing);
     }
   };
 
-  if (isFollowing) {
+  if (internalFollowing) {
     return (
       <Button
         variant={isHovered ? "destructive" : "outline"}

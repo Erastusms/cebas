@@ -2,11 +2,12 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { ExternalLink, Smartphone, User, Bookmark, LogOut, ChevronDown, Home, Bell, Shield, Settings } from "lucide-react";
+import { ExternalLink, Smartphone, User, Bookmark, LogOut, ChevronDown, Home, Bell, Shield, Settings, Search } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useUnreadNotificationCount } from "../../hooks/useNotifications";
 import { Button } from "../ui/button";
 import { ThemeSwitcher } from "../ui/ThemeSwitcher";
+import { SearchBar } from "../search/SearchBar";
 
 export function Navbar() {
   const { user, isAuthenticated, isLoading, logout, isLoggingOut } = useAuth();
@@ -41,9 +42,9 @@ export function Navbar() {
 
   return (
     <header className="bg-background/80 sticky top-0 z-40 w-full border-b border-border backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 space-x-3">
         {/* Brand Logo */}
-        <Link href="/" className="group flex items-center space-x-3">
+        <Link href="/" className="group flex items-center space-x-3 flex-shrink-0">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary font-bold text-primary-foreground shadow-md transition-transform group-hover:scale-105">
             C
           </div>
@@ -62,8 +63,22 @@ export function Navbar() {
           </div>
         </Link>
 
+        {/* Universal Search Bar in Header */}
+        <div className="hidden sm:flex flex-1 max-w-md mx-2 lg:mx-6">
+          <SearchBar />
+        </div>
+
         {/* Action Controls / Auth Status */}
-        <div className="flex items-center space-x-2 sm:space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+          {/* Mobile Search Icon Trigger */}
+          <Link
+            href="/search"
+            aria-label="Cari di CEBAS"
+            className="flex sm:hidden h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground transition hover:bg-muted"
+          >
+            <Search className="h-4 w-4" />
+          </Link>
+
           <Link
             href="/home"
             className="hidden items-center space-x-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-muted sm:inline-flex"

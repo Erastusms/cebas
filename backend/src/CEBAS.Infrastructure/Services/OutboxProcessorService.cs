@@ -182,6 +182,13 @@ public class OutboxProcessorService : BackgroundService
             OutboxMetrics.PublishLatency.Record(publishSw.Elapsed.TotalMilliseconds);
             OutboxMetrics.EventsPublishedCount.Add(1);
 
+            // 2. Project to Elasticsearch if it is a search-relevant event
+            var searchProjection = scope.ServiceProvider.GetService<CEBAS.Application.Abstractions.Search.ISearchProjectionService>();
+            if (searchProjection != null)
+            {
+                await ProjectSearchEventAsync(reloaded, searchProjection, cancellationToken);
+            }
+
             reloaded.MarkPublished(now);
             _logger.LogDebug("Outbox event {EventId} ({EventType}) published successfully to {Channel}",
                 reloaded.Id, reloaded.EventType, RedisChannelName);
@@ -212,5 +219,105 @@ public class OutboxProcessorService : BackgroundService
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private static readonly System.Text.Json.JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
+    private async Task ProjectSearchEventAsync(
+        OutboxEvent evt,
+        CEBAS.Application.Abstractions.Search.ISearchProjectionService searchProjection,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(evt.Payload);
+            var root = doc.RootElement;
+
+            if (!root.TryGetProperty("payload", out var payloadProp))
+            {
+                return;
+            }
+
+            var payloadJson = payloadProp.GetRawText();
+            var eventType = evt.EventType.Trim().ToUpperInvariant();
+
+            switch (eventType)
+            {
+                case "POST_CREATED":
+                    var postCreated = System.Text.Json.JsonSerializer.Deserialize<CEBAS.Application.Contracts.Events.PostCreatedPayload>(payloadJson, JsonOptions);
+                    if (postCreated != null)
+                    {
+                        await searchProjection.ProjectPostCreatedAsync(postCreated, cancellationToken);
+                    }
+                    break;
+
+                case "POST_DELETED":
+                    var postDeleted = System.Text.Json.JsonSerializer.Deserialize<CEBAS.Application.Contracts.Events.PostDeletedPayload>(payloadJson, JsonOptions);
+                    if (postDeleted != null)
+                    {
+                        await searchProjection.ProjectPostDeletedAsync(postDeleted.PostId, cancellationToken);
+                    }
+                    else
+                    {
+                        await searchProjection.ProjectPostDeletedAsync(evt.AggregateId, cancellationToken);
+                    }
+                    break;
+
+                case "POST_UPDATED":
+                    var postUpdated = System.Text.Json.JsonSerializer.Deserialize<CEBAS.Application.Contracts.Events.PostUpdatedPayload>(payloadJson, JsonOptions);
+                    if (postUpdated != null)
+                    {
+                        await searchProjection.ProjectPostUpdatedAsync(postUpdated, cancellationToken);
+                    }
+                    break;
+
+                case "PROFILE_UPDATED":
+                    var profileUpdated = System.Text.Json.JsonSerializer.Deserialize<CEBAS.Application.Contracts.Events.ProfileUpdatedPayload>(payloadJson, JsonOptions);
+                    if (profileUpdated != null)
+                    {
+                        await searchProjection.ProjectProfileUpdatedAsync(profileUpdated, cancellationToken);
+                    }
+                    break;
+
+                case "USER_UPDATED":
+                    var userUpdated = System.Text.Json.JsonSerializer.Deserialize<CEBAS.Application.Contracts.Events.UserUpdatedPayload>(payloadJson, JsonOptions);
+                    if (userUpdated != null)
+                    {
+                        await searchProjection.ProjectUserUpdatedAsync(userUpdated, cancellationToken);
+                    }
+                    break;
+
+                case "USER_CREATED":
+                    var userCreated = System.Text.Json.JsonSerializer.Deserialize<CEBAS.Application.Contracts.Events.UserCreatedPayload>(payloadJson, JsonOptions);
+                    if (userCreated != null)
+                    {
+                        await searchProjection.ProjectUserCreatedAsync(userCreated, cancellationToken);
+                    }
+                    break;
+
+                case "POSTHIDDEN":
+                case "POST_HIDDEN":
+                    await searchProjection.ProjectPostHiddenAsync(evt.AggregateId, cancellationToken);
+                    break;
+
+                case "USERSUSPENDED":
+                case "USER_SUSPENDED":
+                    await searchProjection.ProjectUserSuspendedAsync(evt.AggregateId, cancellationToken);
+                    break;
+
+                case "USERREINSTATED":
+                case "USER_REINSTATED":
+                    await searchProjection.ProjectUserReinstatedAsync(evt.AggregateId, cancellationToken);
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to project outbox event {EventId} ({EventType}) to search index", evt.Id, evt.EventType);
+            throw;
+        }
     }
 }

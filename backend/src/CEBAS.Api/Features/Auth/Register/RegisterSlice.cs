@@ -48,16 +48,19 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Cu
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly CEBAS.Application.Abstractions.IOutboxWriter? _outboxWriter;
     private readonly ILogger<RegisterCommandHandler> _logger;
 
     public RegisterCommandHandler(
         ApplicationDbContext dbContext,
         IPasswordHasher passwordHasher,
-        ILogger<RegisterCommandHandler> logger)
+        ILogger<RegisterCommandHandler> logger,
+        CEBAS.Application.Abstractions.IOutboxWriter? outboxWriter = null)
     {
         _dbContext = dbContext;
         _passwordHasher = passwordHasher;
         _logger = logger;
+        _outboxWriter = outboxWriter;
     }
 
     public async Task<CurrentUserResponse> Handle(RegisterCommand request, CancellationToken cancellationToken)
@@ -95,6 +98,26 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Cu
         );
 
         await _dbContext.Users.AddAsync(user, cancellationToken);
+
+        if (_outboxWriter != null)
+        {
+            await _outboxWriter.EnqueueAsync(
+                eventType: "USER_CREATED",
+                aggregateType: "User",
+                aggregateId: user.Id,
+                payload: new CEBAS.Application.Contracts.Events.UserCreatedPayload(
+                    user.Id,
+                    user.Username,
+                    user.DisplayName,
+                    user.Bio,
+                    user.AvatarUrl,
+                    user.CreatedAt
+                ),
+                actorId: user.Id,
+                cancellationToken: cancellationToken
+            );
+        }
+
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("New user registered: @{Username} [Id: {UserId}]", user.Username, user.Id);

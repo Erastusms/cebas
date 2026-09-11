@@ -36,14 +36,17 @@ public sealed class UpdateBannerCommandValidator : AbstractValidator<UpdateBanne
 public sealed class UpdateBannerCommandHandler : IRequestHandler<UpdateBannerCommand, CurrentUserResponse>
 {
     private readonly ApplicationDbContext _dbContext;
+    private readonly CEBAS.Application.Abstractions.IOutboxWriter? _outboxWriter;
     private readonly ILogger<UpdateBannerCommandHandler> _logger;
 
     public UpdateBannerCommandHandler(
         ApplicationDbContext dbContext,
-        ILogger<UpdateBannerCommandHandler> logger)
+        ILogger<UpdateBannerCommandHandler> logger,
+        CEBAS.Application.Abstractions.IOutboxWriter? outboxWriter = null)
     {
         _dbContext = dbContext;
         _logger = logger;
+        _outboxWriter = outboxWriter;
     }
 
     public async Task<CurrentUserResponse> Handle(UpdateBannerCommand request, CancellationToken cancellationToken)
@@ -71,6 +74,25 @@ public sealed class UpdateBannerCommandHandler : IRequestHandler<UpdateBannerCom
         else
         {
             user.SetBannerUrl(request.BannerUrl);
+        }
+
+        if (_outboxWriter != null)
+        {
+            await _outboxWriter.EnqueueAsync(
+                eventType: "PROFILE_UPDATED",
+                aggregateType: "User",
+                aggregateId: user.Id,
+                payload: new CEBAS.Application.Contracts.Events.ProfileUpdatedPayload(
+                    user.Id,
+                    user.Username,
+                    user.DisplayName,
+                    user.Bio,
+                    user.AvatarUrl,
+                    DateTimeOffset.UtcNow
+                ),
+                actorId: user.Id,
+                cancellationToken: cancellationToken
+            );
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
