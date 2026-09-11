@@ -7,8 +7,15 @@
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
+    --surface: 0 0% 100%;
+    --surface-muted: 210 40% 96.1%;
+    --surface-elevated: 0 0% 100%;
+
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
 
     --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 210 40% 98%;
@@ -26,19 +33,46 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
+    --danger: 0 84.2% 60.2%;
+    --danger-foreground: 210 40% 98%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 48 96% 89%;
+
+    --success: 142.1 76.2% 36.3%;
+    --success-foreground: 138 76% 97%;
+
     --border: 214.3 31.8% 91.4%;
+    --border-muted: 214.3 31.8% 95%;
+
     --input: 214.3 31.8% 91.4%;
+    --input-placeholder: 215.4 16.3% 56.9%;
+
     --ring: 221.2 83.2% 53.3%;
+    --focus-ring: 221.2 83.2% 53.3%;
+
+    --text-primary: 222.2 84% 4.9%;
+    --text-secondary: 215.4 16.3% 36.9%;
+    --text-muted: 215.4 16.3% 46.9%;
 
     --radius: 0.5rem;
   }
 
   .dark {
+    /* Major surfaces: Slate/Zinc 950 base */
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    /* Elevated distinct layers: Slate 900 */
+    --surface: 222.2 47.4% 11.2%;
+    --surface-muted: 217.2 32.6% 14.5%;
+    --surface-elevated: 217.2 32.6% 17.5%;
+
+    --card: 222.2 47.4% 11.2%;
     --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 47.4% 11.2%;
+    --popover-foreground: 210 40% 98%;
 
     --primary: 217.2 91.2% 59.8%;
     --primary-foreground: 222.2 47.4% 11.2%;
@@ -56,9 +90,27 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
+    --danger: 0 72% 51%;
+    --danger-foreground: 210 40% 98%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 48 96% 89%;
+
+    --success: 142.1 70.6% 45.3%;
+    --success-foreground: 138 76% 97%;
+
+    --border: 217.2 32.6% 20%;
+    --border-muted: 217.2 32.6% 15%;
+
+    --input: 217.2 32.6% 20%;
+    --input-placeholder: 215 20.2% 55%;
+
     --ring: 224.3 76.3% 48%;
+    --focus-ring: 224.3 76.3% 48%;
+
+    --text-primary: 210 40% 98%;
+    --text-secondary: 215 20.2% 75.1%;
+    --text-muted: 215 20.2% 65.1%;
   }
 }
 
@@ -69,5 +121,12 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Subtle, performant transitions that respect accessibility and reduced-motion preferences */
+@media (prefers-reduced-motion: no-preference) {
+  body {
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 }

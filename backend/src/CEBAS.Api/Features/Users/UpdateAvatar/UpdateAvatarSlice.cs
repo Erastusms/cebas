@@ -76,7 +76,9 @@ public sealed class UpdateAvatarCommandHandler : IRequestHandler<UpdateAvatarCom
             user.Role.ToString().ToUpperInvariant(),
             user.IsVerified,
             user.CreatedAt,
-            user.UpdatedAt
+            user.UpdatedAt,
+            null,
+            user.ThemePreference.ToString().ToUpperInvariant()
         );
     }
 }

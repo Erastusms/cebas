@@ -41,6 +41,14 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired();
 
         builder.Property(u => u.IsVerified).HasColumnName("is_verified").IsRequired().HasDefaultValue(false);
+        builder.Property(u => u.ThemePreference)
+            .HasColumnName("theme_preference")
+            .HasMaxLength(10)
+            .HasConversion(
+                v => v.ToString().ToUpperInvariant(),
+                v => Enum.Parse<ThemePreference>(v, true))
+            .IsRequired()
+            .HasDefaultValue(ThemePreference.SYSTEM);
         builder.Property(u => u.IsSuspended).HasColumnName("is_suspended").IsRequired().HasDefaultValue(false);
         builder.Property(u => u.SuspendedAt).HasColumnName("suspended_at");
         builder.Property(u => u.SuspensionReason).HasColumnName("suspension_reason");

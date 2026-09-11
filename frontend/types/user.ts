@@ -1,10 +1,11 @@
+import type { ThemePreference } from "./auth";
+import type { UserProfileRelationship } from "./social";
+
 export type UserProfileStats = {
   postCount: number;
   followerCount: number;
   followingCount: number;
 };
-
-import type { UserProfileRelationship } from "./social";
 
 export type UserProfile = {
   id: string;
@@ -20,9 +21,10 @@ export type UserProfile = {
 };
 
 export type UpdateProfileRequest = {
-  displayName: string;
+  displayName?: string;
   bio?: string | null;
   bannerUrl?: string | null;
+  themePreference?: ThemePreference;
 };
 
 export type SessionItem = {

@@ -2,11 +2,12 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { User, Shield, Smartphone, Edit3, Calendar, Mail, CheckCircle2 } from "lucide-react";
+import { User, Shield, Smartphone, Edit3, Calendar, Mail, CheckCircle2, Palette } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { AuthGuard } from "../../components/auth/AuthGuard";
 import { Button } from "../../components/ui/button";
 import { EditProfileModal } from "../../components/profile/EditProfileModal";
+import { ThemeSwitcher } from "../../components/ui/ThemeSwitcher";
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -110,6 +111,20 @@ export default function SettingsPage() {
                     <p className="text-sm text-foreground/90 whitespace-pre-wrap">{user.bio}</p>
                   </div>
                 )}
+
+                {/* Theme & Appearance Section */}
+                <div className="pt-4 border-t border-border space-y-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground flex items-center space-x-2">
+                      <Palette className="h-4 w-4 text-primary" />
+                      <span>Tema & Tampilan</span>
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Pilih tema tampilan yang sesuai dengan preferensi Anda. Mode sistem akan otomatis mengikuti pengaturan perangkat.
+                    </p>
+                  </div>
+                  <ThemeSwitcher variant="segmented" />
+                </div>
               </div>
             )}
           </div>

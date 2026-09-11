@@ -89,7 +89,9 @@ public sealed class UpdateBannerCommandHandler : IRequestHandler<UpdateBannerCom
             user.Role.ToString().ToUpperInvariant(),
             user.IsVerified,
             user.CreatedAt,
-            user.UpdatedAt
+            user.UpdatedAt,
+            null,
+            user.ThemePreference.ToString().ToUpperInvariant()
         );
     }
 }

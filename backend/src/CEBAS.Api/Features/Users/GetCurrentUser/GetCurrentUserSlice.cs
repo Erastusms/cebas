@@ -39,7 +39,9 @@ public sealed class GetCurrentUserQueryHandler : IRequestHandler<GetCurrentUserQ
             user.Role.ToString().ToUpperInvariant(),
             user.IsVerified,
             user.CreatedAt,
-            user.UpdatedAt
+            user.UpdatedAt,
+            null,
+            user.ThemePreference.ToString().ToUpperInvariant()
         );
     }
 }

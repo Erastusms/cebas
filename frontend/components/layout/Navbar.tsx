@@ -2,10 +2,11 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { ExternalLink, Smartphone, User, Bookmark, LogOut, ChevronDown, Home, Bell, Shield } from "lucide-react";
+import { ExternalLink, Smartphone, User, Bookmark, LogOut, ChevronDown, Home, Bell, Shield, Settings } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useUnreadNotificationCount } from "../../hooks/useNotifications";
 import { Button } from "../ui/button";
+import { ThemeSwitcher } from "../ui/ThemeSwitcher";
 
 export function Navbar() {
   const { user, isAuthenticated, isLoading, logout, isLoggingOut } = useAuth();
@@ -80,6 +81,9 @@ export function Navbar() {
             <span>OpenAPI Docs</span>
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
+
+          {/* Theme Switcher Toggle */}
+          <ThemeSwitcher />
 
           {isLoading ? (
             <div className="h-9 w-24 animate-pulse rounded-lg bg-muted" />
@@ -212,6 +216,17 @@ export function Navbar() {
                       >
                         <Smartphone className="h-4 w-4 text-muted-foreground" />
                         <span>My Sessions</span>
+                      </Link>
+
+                      {/* Item 6: Settings & Theme */}
+                      <Link
+                        href="/settings"
+                        onClick={() => setIsMenuOpen(false)}
+                        role="menuitem"
+                        className="flex items-center space-x-2.5 rounded-xl px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition"
+                      >
+                        <Settings className="h-4 w-4 text-primary" />
+                        <span>Pengaturan & Tema</span>
                       </Link>
 
                       {/* Staff Moderation Dashboard */}

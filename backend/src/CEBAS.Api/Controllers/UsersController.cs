@@ -113,7 +113,7 @@ public class UsersController : ControllerBase
             throw new UnauthorizedException("Authenticated user context is missing or invalid.");
         }
 
-        var command = new UpdateProfileCommand(_currentUser.UserId.Value, request.DisplayName, request.Bio, request.BannerUrl);
+        var command = new UpdateProfileCommand(_currentUser.UserId.Value, request.DisplayName, request.Bio, request.BannerUrl, request.ThemePreference);
         var updatedUser = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<CurrentUserResponse>.Ok(updatedUser, "Profile updated successfully."));
     }

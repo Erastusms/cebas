@@ -38,13 +38,15 @@ public record CurrentUserResponse(
     bool IsVerified,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt = null,
-    Guid? SessionId = null
+    Guid? SessionId = null,
+    string ThemePreference = "SYSTEM"
 );
 
 public record UpdateProfileRequest(
-    string DisplayName,
-    string? Bio,
-    string? BannerUrl = null
+    string? DisplayName = null,
+    string? Bio = null,
+    string? BannerUrl = null,
+    string? ThemePreference = null
 );
 
 public record UpdateBannerRequest(

@@ -22,6 +22,7 @@ public class User : Entity
     public bool IsSuspended { get; private set; } = false;
     public DateTimeOffset? SuspendedAt { get; private set; }
     public string? SuspensionReason { get; private set; }
+    public ThemePreference ThemePreference { get; private set; } = ThemePreference.SYSTEM;
 
 
     // Navigation properties
@@ -213,6 +214,15 @@ public class User : Entity
         UpdatedAt = DateTimeOffset.UtcNow;
 
         AddDomainEvent(new Events.UserReinstatedDomainEvent(Id, UpdatedAt.Value));
+    }
+
+    public void UpdateThemePreference(ThemePreference themePreference)
+    {
+        if (ThemePreference != themePreference)
+        {
+            ThemePreference = themePreference;
+            UpdatedAt = DateTimeOffset.UtcNow;
+        }
     }
 }
 

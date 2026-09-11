@@ -1,3 +1,5 @@
+export type ThemePreference = "LIGHT" | "DARK" | "SYSTEM";
+
 export type User = {
   id: string;
   username: string;
@@ -8,6 +10,7 @@ export type User = {
   bannerUrl?: string | null;
   role: string;
   isVerified: boolean;
+  themePreference?: ThemePreference;
   createdAt: string;
   updatedAt?: string | null;
   sessionId?: string | null;

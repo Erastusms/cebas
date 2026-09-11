@@ -59,6 +59,7 @@ describe("Moderation Dashboard Page (/admin/moderation)", () => {
         email: "user@test.com",
         displayName: "Regular User",
         role: "USER",
+        isVerified: false,
         createdAt: "2026-09-01",
       },
       isAuthenticated: true,
@@ -66,8 +67,8 @@ describe("Moderation Dashboard Page (/admin/moderation)", () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
-      refreshUser: vi.fn(),
-    });
+      refetchUser: vi.fn() as any,
+    } as any);
 
     renderWithProviders(<ModerationPage />);
 
@@ -83,6 +84,7 @@ describe("Moderation Dashboard Page (/admin/moderation)", () => {
         email: "mod@test.com",
         displayName: "Staff Moderator",
         role: "MODERATOR",
+        isVerified: false,
         createdAt: "2026-09-01",
       },
       isAuthenticated: true,
@@ -90,8 +92,8 @@ describe("Moderation Dashboard Page (/admin/moderation)", () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
-      refreshUser: vi.fn(),
-    });
+      refetchUser: vi.fn() as any,
+    } as any);
 
     vi.mocked(safetyApi.getAdminReports).mockResolvedValue({
       success: true,
@@ -147,6 +149,7 @@ describe("Moderation Dashboard Page (/admin/moderation)", () => {
         email: "admin@test.com",
         displayName: "Administrator",
         role: "ADMIN",
+        isVerified: false,
         createdAt: "2026-09-01",
       },
       isAuthenticated: true,
@@ -154,8 +157,8 @@ describe("Moderation Dashboard Page (/admin/moderation)", () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
-      refreshUser: vi.fn(),
-    });
+      refetchUser: vi.fn() as any,
+    } as any);
 
     vi.mocked(safetyApi.getAdminReports).mockResolvedValue({
       success: true,
@@ -221,6 +224,7 @@ describe("Moderation Dashboard Page (/admin/moderation)", () => {
         email: "mod@test.com",
         displayName: "Staff Moderator",
         role: "MODERATOR",
+        isVerified: false,
         createdAt: "2026-09-01",
       },
       isAuthenticated: true,
@@ -228,8 +232,8 @@ describe("Moderation Dashboard Page (/admin/moderation)", () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
-      refreshUser: vi.fn(),
-    });
+      refetchUser: vi.fn() as any,
+    } as any);
 
     vi.mocked(safetyApi.getAdminReports).mockResolvedValue({
       success: true,

@@ -40,13 +40,15 @@ export const metadata: Metadata = {
   },
 };
 
+import { ThemeProvider } from "../providers/ThemeProvider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className={inter.variable}>
+    <html lang="id" className={inter.variable} suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased selection:bg-primary/20 selection:text-primary">
         {/* WCAG 2.2 AA Skip to Content Link */}
         <a
@@ -57,15 +59,17 @@ export default function RootLayout({
         </a>
 
         <QueryProvider>
-          <RealtimeProvider>
-            <Navbar />
-            <div id="main-content">
-              {children}
-            </div>
-            <FloatingPostButton />
-            <RateLimitBanner />
-            <ToastContainer />
-          </RealtimeProvider>
+          <ThemeProvider>
+            <RealtimeProvider>
+              <Navbar />
+              <div id="main-content">
+                {children}
+              </div>
+              <FloatingPostButton />
+              <RateLimitBanner />
+              <ToastContainer />
+            </RealtimeProvider>
+          </ThemeProvider>
         </QueryProvider>
       </body>
     </html>
