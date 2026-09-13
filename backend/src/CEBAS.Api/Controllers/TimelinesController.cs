@@ -86,4 +86,22 @@ public class TimelinesController : ControllerBase
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<CursorPagedResult<PostResponse>>.Ok(result));
     }
+
+    /// <summary>
+    /// Retrieves posts associated with a specific hashtag using keyset cursor pagination.
+    /// Excludes blocked authors, soft-deleted posts, and suspended accounts.
+    /// </summary>
+    [HttpGet("api/v1/timelines/tags/{tag}")]
+    [ProducesResponseType(typeof(ApiResponse<CursorPagedResult<PostResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetailsResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetHashtagTimeline(
+        [FromRoute] string tag,
+        [FromQuery] string? cursor = null,
+        [FromQuery] int limit = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new Features.Hashtags.GetHashtagTimeline.GetHashtagTimelineQuery(tag, _currentUser.UserId, cursor, limit);
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<CursorPagedResult<PostResponse>>.Ok(result));
+    }
 }

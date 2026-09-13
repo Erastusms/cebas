@@ -7,6 +7,7 @@ import { ReplyComposer } from "./ReplyComposer";
 import { DeleteReplyModal } from "./DeleteReplyModal";
 import { useAuth } from "../../hooks/useAuth";
 import { formatPostTimestamp } from "../../lib/utils/time";
+import { HashtagText } from "../hashtags/HashtagText";
 import type { ReplyItem as ReplyItemType } from "../../types/api";
 
 interface ReplyItemProps {
@@ -129,7 +130,7 @@ export function ReplyItem({
 
             {/* Comment Text Content */}
             <p className="mt-2.5 whitespace-pre-wrap text-xs sm:text-sm leading-relaxed text-foreground/90">
-              {reply.content}
+              <HashtagText text={reply.content} />
             </p>
 
             {/* Action Bar */}

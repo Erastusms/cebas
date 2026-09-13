@@ -21,6 +21,8 @@ public class ApplicationDbContext : DbContext, IDbContext
     public DbSet<OutboxEvent> OutboxEvents => Set<OutboxEvent>();
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<ModerationAuditLog> ModerationAuditLogs => Set<ModerationAuditLog>();
+    public DbSet<Hashtag> Hashtags => Set<Hashtag>();
+    public DbSet<PostHashtag> PostHashtags => Set<PostHashtag>();
 
 
     private readonly MediatR.IPublisher? _publisher;

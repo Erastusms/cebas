@@ -22,6 +22,7 @@ public static class DependencyInjection
         services.Configure<MediaStorageOptions>(configuration.GetSection(MediaStorageOptions.SectionName));
         services.Configure<OutboxOptions>(configuration.GetSection(OutboxOptions.SectionName));
         services.Configure<ElasticsearchOptions>(configuration.GetSection(ElasticsearchOptions.SectionName));
+        services.Configure<TrendingOptions>(configuration.GetSection(TrendingOptions.SectionName));
 
         var postgresOptions = configuration.GetSection(PostgresOptions.SectionName).Get<PostgresOptions>() ?? new PostgresOptions();
         var pgBouncerOptions = configuration.GetSection(PgBouncerOptions.SectionName).Get<PgBouncerOptions>() ?? new PgBouncerOptions();
@@ -84,6 +85,7 @@ public static class DependencyInjection
         services.AddScoped<IOutboxWriter, Services.OutboxWriter>();
         services.AddSingleton<IRateLimiterService, Services.RedisRateLimiterService>();
         services.AddHostedService<Services.OutboxProcessorService>();
+        services.AddHostedService<Services.TrendingBackgroundService>();
 
         // 5b. Elasticsearch Client & Search Services
         services.AddSingleton<Elastic.Clients.Elasticsearch.ElasticsearchClient>(sp =>

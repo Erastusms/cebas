@@ -185,6 +185,33 @@ public class MigrationExecutionTests
         sqlContent.Should().Contain("chk_outbox_status");
     }
 
+    [Fact]
+    public void HashtagsMigrationScript_ShouldExistAndContainRequiredSqlDirectives()
+    {
+        string? foundPath = FindMigrationScript("020_hashtags.sql");
+
+        foundPath.Should().NotBeNull("020_hashtags.sql migration file must exist in backend/migrations/sql/");
+
+        var sqlContent = File.ReadAllText(foundPath!);
+        sqlContent.Should().Contain("CREATE TABLE IF NOT EXISTS hashtags");
+        sqlContent.Should().Contain("CREATE TABLE IF NOT EXISTS post_hashtags");
+        sqlContent.Should().Contain("normalized_name VARCHAR(100) NOT NULL");
+        sqlContent.Should().Contain("uq_hashtags_normalized_name");
+        sqlContent.Should().Contain("uq_post_hashtags_post_hashtag");
+        sqlContent.Should().Contain("idx_post_hashtags_hashtag_created");
+    }
+
+    [Fact]
+    public void PostHashtagsUpdatedAtMigrationScript_ShouldExistAndContainRequiredSqlDirectives()
+    {
+        string? foundPath = FindMigrationScript("021_post_hashtags_updated_at.sql");
+
+        foundPath.Should().NotBeNull("021_post_hashtags_updated_at.sql migration file must exist in backend/migrations/sql/");
+
+        var sqlContent = File.ReadAllText(foundPath!);
+        sqlContent.Should().Contain("ALTER TABLE post_hashtags ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;");
+    }
+
     private static string? FindMigrationScript(string filename)
     {
         var currentDir = new DirectoryInfo(AppContext.BaseDirectory);

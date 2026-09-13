@@ -57,4 +57,22 @@ export const timelinesApi = {
     const endpoint = `/api/v1/users/${encodeURIComponent(idOrUsername)}/likes${qs ? `?${qs}` : ""}`;
     return apiClient.get<ApiResponse<CursorPagination<Post>>>(endpoint);
   },
+
+  /**
+   * Retrieves posts associated with a specific hashtag with keyset cursor pagination.
+   */
+  getTagTimeline: async (
+    tag: string,
+    cursor?: string | null,
+    limit: number = 20
+  ): Promise<ApiResponse<CursorPagination<Post>>> => {
+    const params = new URLSearchParams();
+    if (cursor) params.set("cursor", cursor);
+    if (limit) params.set("limit", limit.toString());
+
+    const cleanTag = tag.replace(/^#/, "");
+    const qs = params.toString();
+    const endpoint = `/api/v1/timelines/tags/${encodeURIComponent(cleanTag)}${qs ? `?${qs}` : ""}`;
+    return apiClient.get<ApiResponse<CursorPagination<Post>>>(endpoint);
+  },
 };

@@ -50,6 +50,11 @@ public static class DependencyInjection
         services.AddScoped<CEBAS.Application.Abstractions.ICurrentUser, Services.CurrentUser>();
         services.AddScoped<Services.ICookieService, Services.CookieService>();
 
+        // Hashtag & Trending Services (Phase 12)
+        services.AddSingleton<CEBAS.Application.Abstractions.IHashtagParser, Features.Hashtags.ExtractHashtags.HashtagParser>();
+        services.AddScoped<CEBAS.Application.Abstractions.ITrendingIngestionService, Features.Trending.IngestHashtagActivity.TrendingIngestionService>();
+        services.AddScoped<CEBAS.Application.Abstractions.ITrendingService, Features.Trending.AggregateTrendingTopics.TrendingService>();
+
         services.AddAuthentication(options =>
         {
             options.DefaultScheme = Authentication.CookieSessionAuthenticationHandler.SchemeName;

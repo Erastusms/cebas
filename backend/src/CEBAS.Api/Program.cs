@@ -64,6 +64,7 @@ try
             .AddMeter(CebasMetrics.MeterName)
             .AddMeter(TimelineMetrics.MeterName)
             .AddMeter(OutboxMetrics.MeterName)
+            .AddMeter(TrendingMetrics.MeterName)
             .AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
             .AddPrometheusExporter());

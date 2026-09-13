@@ -12,6 +12,7 @@ import { LikeButton } from "./LikeButton";
 import { BookmarkButton } from "./BookmarkButton";
 import { useAuth } from "../../hooks/useAuth";
 import { formatPostTimestamp } from "../../lib/utils/time";
+import { HashtagText } from "../hashtags/HashtagText";
 import type { Post } from "../../types/api";
 
 interface PostCardProps {
@@ -181,7 +182,7 @@ export function PostCard({
         {/* Post Text Content */}
         {post.content && (
           <p className="mt-3 whitespace-pre-wrap text-sm sm:text-base leading-relaxed text-foreground/95">
-            {post.content}
+            <HashtagText text={post.content} />
           </p>
         )}
 

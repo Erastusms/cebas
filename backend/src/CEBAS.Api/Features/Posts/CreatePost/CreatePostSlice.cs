@@ -47,12 +47,21 @@ public sealed class CreatePostCommandHandler : IRequestHandler<CreatePostCommand
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly IOutboxWriter? _outboxWriter;
+    private readonly IHashtagParser _hashtagParser;
     private readonly ILogger<CreatePostCommandHandler> _logger;
 
     public CreatePostCommandHandler(
         ApplicationDbContext dbContext,
         ILogger<CreatePostCommandHandler> logger)
-        : this(dbContext, null, logger)
+        : this(dbContext, null, null, logger)
+    {
+    }
+
+    public CreatePostCommandHandler(
+        ApplicationDbContext dbContext,
+        IOutboxWriter? outboxWriter,
+        ILogger<CreatePostCommandHandler> logger)
+        : this(dbContext, outboxWriter, null, logger)
     {
     }
 
@@ -60,10 +69,12 @@ public sealed class CreatePostCommandHandler : IRequestHandler<CreatePostCommand
     public CreatePostCommandHandler(
         ApplicationDbContext dbContext,
         IOutboxWriter? outboxWriter,
+        IHashtagParser? hashtagParser,
         ILogger<CreatePostCommandHandler> logger)
     {
         _dbContext = dbContext;
         _outboxWriter = outboxWriter;
+        _hashtagParser = hashtagParser ?? new CEBAS.Api.Features.Hashtags.ExtractHashtags.HashtagParser();
         _logger = logger;
     }
 
@@ -137,6 +148,9 @@ public sealed class CreatePostCommandHandler : IRequestHandler<CreatePostCommand
             }
         }
 
+        // 2b. Extract hashtags from post content
+        var extractedHashtags = _hashtagParser.ExtractHashtags(request.Content);
+
         // 3. ACID Transactional persistence
         var post = Post.Create(request.AuthorUserId, request.Content, mediaEntities.Count);
 
@@ -146,8 +160,8 @@ public sealed class CreatePostCommandHandler : IRequestHandler<CreatePostCommand
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
             try
             {
-                _logger.LogInformation("post.create.started: Author {AuthorUserId} creating post with {MediaCount} media",
-                    request.AuthorUserId, mediaEntities.Count);
+                _logger.LogInformation("post.create.started: Author {AuthorUserId} creating post with {MediaCount} media and {HashtagCount} hashtags",
+                    request.AuthorUserId, mediaEntities.Count, extractedHashtags.Count);
 
                 await _dbContext.Posts.AddAsync(post, cancellationToken);
                 await _dbContext.SaveChangesAsync(cancellationToken);
@@ -158,6 +172,27 @@ public sealed class CreatePostCommandHandler : IRequestHandler<CreatePostCommand
                     {
                         var postMedia = PostMedia.Create(post.Id, mediaEntities[i].Id, i);
                         await _dbContext.PostMedia.AddAsync(postMedia, cancellationToken);
+                    }
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                }
+
+                // Persist durable hashtag relationships in PostgreSQL
+                if (extractedHashtags.Count > 0)
+                {
+                    foreach (var tag in extractedHashtags)
+                    {
+                        var hashtag = await _dbContext.Hashtags
+                            .FirstOrDefaultAsync(h => h.NormalizedName == tag.NormalizedName, cancellationToken);
+
+                        if (hashtag == null)
+                        {
+                            hashtag = Hashtag.Create(tag.NormalizedName, tag.DisplayName);
+                            await _dbContext.Hashtags.AddAsync(hashtag, cancellationToken);
+                            await _dbContext.SaveChangesAsync(cancellationToken);
+                        }
+
+                        var postHashtag = PostHashtag.Create(post.Id, hashtag.Id);
+                        await _dbContext.PostHashtags.AddAsync(postHashtag, cancellationToken);
                     }
                     await _dbContext.SaveChangesAsync(cancellationToken);
                 }
@@ -174,7 +209,8 @@ public sealed class CreatePostCommandHandler : IRequestHandler<CreatePostCommand
                             post.AuthorId,
                             post.Content,
                             post.MediaCount,
-                            post.CreatedAt
+                            post.CreatedAt,
+                            extractedHashtags.Select(h => h.NormalizedName).ToList()
                         ),
                         actorId: post.AuthorId,
                         cancellationToken: cancellationToken

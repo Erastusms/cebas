@@ -38,7 +38,8 @@ public sealed record PostCreatedPayload(
     Guid AuthorId,
     string? Content,
     int MediaCount,
-    DateTimeOffset CreatedAt
+    DateTimeOffset CreatedAt,
+    List<string>? Hashtags = null
 );
 
 public sealed record PostLikedPayload(

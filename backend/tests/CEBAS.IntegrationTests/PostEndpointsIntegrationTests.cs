@@ -122,6 +122,30 @@ public class PostEndpointsIntegrationTests : IClassFixture<WebApplicationFactory
     }
 
     [Fact]
+    public async Task CreatePost_WithHashtags_ShouldPersistHashtagsAndRelationsSuccessfully()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..6];
+        var (client, user) = await RegisterAndLoginUserAsync($"tag_user_{suffix}", $"tag_user_{suffix}@test.com");
+
+        var content = "test hastag #fyp #firstpost #testplatform #hashtag";
+        var createRequest = new CreatePostRequest(content, null);
+        var createRes = await client.PostAsJsonAsync("/api/v1/posts", createRequest);
+        createRes.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var createBody = await createRes.Content.ReadFromJsonAsync<ApiResponse<PostResponse>>(_jsonOptions);
+        createBody!.Data.Should().NotBeNull();
+        createBody.Data!.Content.Should().Be(content);
+        createBody.Data.Author.Username.Should().Be(user.Username);
+
+        // Verify that hashtag timeline returns the created post
+        var tagTimelineRes = await client.GetAsync("/api/v1/timelines/tags/fyp");
+        tagTimelineRes.StatusCode.Should().Be(HttpStatusCode.OK);
+        var tagTimelineBody = await tagTimelineRes.Content.ReadFromJsonAsync<ApiResponse<CursorPagedResult<PostResponse>>>(_jsonOptions);
+        tagTimelineBody!.Data.Should().NotBeNull();
+        tagTimelineBody.Data!.Items.Should().Contain(p => p.Id == createBody.Data.Id);
+    }
+
+    [Fact]
     public async Task ScenarioB_FourImages_PostCreation_ShouldCommitAtomically()
     {
         var suffix = Guid.NewGuid().ToString("N")[..6];

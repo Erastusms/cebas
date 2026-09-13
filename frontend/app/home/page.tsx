@@ -13,6 +13,7 @@ import { InfiniteFeed } from "../../components/posts/InfiniteFeed";
 import { NewPostsBanner } from "../../components/posts/NewPostsBanner";
 import { useRealtimeEvent } from "../../hooks/useRealtime";
 import { timelinesApi } from "../../lib/api/timelines";
+import { TrendingWidget } from "../../components/trending/TrendingWidget";
 
 export default function HomeFeedPage() {
   const { user, isAuthenticated } = useAuth();
@@ -49,84 +50,94 @@ export default function HomeFeedPage() {
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-background text-foreground">
-      <div className="mx-auto max-w-2xl space-y-6 px-4 py-6 sm:px-6 relative">
-        {/* Floating Pill Banner for New Incoming Posts */}
-        <NewPostsBanner count={newPostsCount} onClick={handleBannerClick} />
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Feed Column */}
+          <div className="lg:col-span-2 space-y-6 relative">
+            {/* Floating Pill Banner for New Incoming Posts */}
+            <NewPostsBanner count={newPostsCount} onClick={handleBannerClick} />
 
-        {/* Post Creation Box for Authenticated Users */}
-        {isAuthenticated && (
-          <section aria-labelledby="create-post-title" className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <h2 id="create-post-title" className="text-lg font-bold text-foreground">
-                Bagikan Pikiran Anda
-              </h2>
-            </div>
-            <PostComposer onPostCreated={handlePostCreated} />
-          </section>
-        )}
+            {/* Post Creation Box for Authenticated Users */}
+            {isAuthenticated && (
+              <section aria-labelledby="create-post-title" className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  <h2 id="create-post-title" className="text-lg font-bold text-foreground">
+                    Bagikan Pikiran Anda
+                  </h2>
+                </div>
+                <PostComposer onPostCreated={handlePostCreated} />
+              </section>
+            )}
 
-        {/* Home Feed Stream */}
-        <section aria-labelledby="home-timeline-title" className="space-y-4">
-          <div className="flex items-center justify-between border-b border-border pb-2">
-            <h1 id="home-timeline-title" className="text-xl font-extrabold tracking-tight text-foreground">
-              Linimasa
-            </h1>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => queryClient.invalidateQueries({ queryKey: ["home-timeline", user?.id] })}
-              className="text-xs text-muted-foreground hover:text-foreground h-8 px-2"
-              aria-label="Refresh timeline feed"
-            >
-              <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-              <span>Segarkan</span>
-            </Button>
-          </div>
-
-          <InfiniteFeed
-            queryKey={["home-timeline", user?.id]}
-            queryFn={async (cursor) => {
-              const res = await timelinesApi.getHomeTimeline(cursor, 20);
-              return res.data;
-            }}
-            emptyTitle="Belum ada postingan, ikuti akun lain untuk mulai melihat linimasa."
-            emptyDescription="Ikuti pembuat konten favorit Anda atau buat postingan pertama Anda untuk mulai berinteraksi di CEBAS."
-            emptyAction={
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
-                <Link href="/">
-                  <Button variant="default" size="sm" className="text-xs">
-                    <Compass className="mr-1.5 h-3.5 w-3.5" />
-                    Jelajahi Profil
-                  </Button>
-                </Link>
+            {/* Home Feed Stream */}
+            <section aria-labelledby="home-timeline-title" className="space-y-4">
+              <div className="flex items-center justify-between border-b border-border pb-2">
+                <h1 id="home-timeline-title" className="text-xl font-extrabold tracking-tight text-foreground">
+                  Linimasa
+                </h1>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => queryClient.invalidateQueries({ queryKey: ["home-timeline", user?.id] })}
+                  className="text-xs text-muted-foreground hover:text-foreground h-8 px-2"
+                  aria-label="Refresh timeline feed"
+                >
+                  <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                  <span>Segarkan</span>
+                </Button>
               </div>
-            }
-          />
-        </section>
 
-        {/* Quick Profile Lookup Footer */}
-        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-3">
-          <div className="flex items-center space-x-2">
-            <Search className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold text-foreground">
-              Cari Akun Pengguna
-            </h3>
+              <InfiniteFeed
+                queryKey={["home-timeline", user?.id]}
+                queryFn={async (cursor) => {
+                  const res = await timelinesApi.getHomeTimeline(cursor, 20);
+                  return res.data;
+                }}
+                emptyTitle="Belum ada postingan, ikuti akun lain untuk mulai melihat linimasa."
+                emptyDescription="Ikuti pembuat konten favorit Anda atau buat postingan pertama Anda untuk mulai berinteraksi di CEBAS."
+                emptyAction={
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
+                    <Link href="/">
+                      <Button variant="default" size="sm" className="text-xs">
+                        <Compass className="mr-1.5 h-3.5 w-3.5" />
+                        <span>Jelajahi Beranda</span>
+                      </Button>
+                    </Link>
+                  </div>
+                }
+              />
+            </section>
+
+            {/* Quick Profile Lookup Footer */}
+            <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-3">
+              <div className="flex items-center space-x-2">
+                <Search className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">
+                  Cari Akun Pengguna
+                </h3>
+              </div>
+              <form onSubmit={handleSearchProfile} className="flex gap-2">
+                <Input
+                  placeholder="Ketik username, misal: johndoe"
+                  value={searchHandle}
+                  onChange={(e) => setSearchHandle(e.target.value)}
+                  className="text-sm"
+                  aria-label="Cari profil pengguna"
+                />
+                <Button type="submit" variant="default" size="md">
+                  Cari
+                </Button>
+              </form>
+            </section>
           </div>
-          <form onSubmit={handleSearchProfile} className="flex gap-2">
-            <Input
-              placeholder="Ketik username, misal: johndoe"
-              value={searchHandle}
-              onChange={(e) => setSearchHandle(e.target.value)}
-              className="text-sm"
-              aria-label="Cari profil pengguna"
-            />
-            <Button type="submit" variant="default" size="md">
-              Cari
-            </Button>
-          </form>
-        </section>
+
+          {/* Desktop Right Sidebar */}
+          <div className="hidden lg:block lg:col-span-1 space-y-6">
+            <TrendingWidget />
+          </div>
+        </div>
       </div>
     </main>
   );

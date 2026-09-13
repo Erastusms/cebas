@@ -189,6 +189,13 @@ public class OutboxProcessorService : BackgroundService
                 await ProjectSearchEventAsync(reloaded, searchProjection, cancellationToken);
             }
 
+            // 3. Project to Trending ingestion service
+            var trendingIngestion = scope.ServiceProvider.GetService<CEBAS.Application.Abstractions.ITrendingIngestionService>();
+            if (trendingIngestion != null)
+            {
+                await ProjectTrendingEventAsync(reloaded, trendingIngestion, cancellationToken);
+            }
+
             reloaded.MarkPublished(now);
             _logger.LogDebug("Outbox event {EventId} ({EventType}) published successfully to {Channel}",
                 reloaded.Id, reloaded.EventType, RedisChannelName);
@@ -318,6 +325,47 @@ public class OutboxProcessorService : BackgroundService
         {
             _logger.LogError(ex, "Failed to project outbox event {EventId} ({EventType}) to search index", evt.Id, evt.EventType);
             throw;
+        }
+    }
+
+    private async Task ProjectTrendingEventAsync(
+        OutboxEvent evt,
+        CEBAS.Application.Abstractions.ITrendingIngestionService trendingIngestion,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(evt.Payload);
+            var root = doc.RootElement;
+
+            if (!root.TryGetProperty("payload", out var payloadProp))
+            {
+                return;
+            }
+
+            var payloadJson = payloadProp.GetRawText();
+            var eventType = evt.EventType.Trim().ToUpperInvariant();
+
+            switch (eventType)
+            {
+                case "POST_CREATED":
+                    var postCreated = System.Text.Json.JsonSerializer.Deserialize<CEBAS.Application.Contracts.Events.PostCreatedPayload>(payloadJson, JsonOptions);
+                    if (postCreated != null)
+                    {
+                        await trendingIngestion.IngestPostCreatedAsync(postCreated, cancellationToken);
+                    }
+                    break;
+
+                case "POST_DELETED":
+                    var postDeleted = System.Text.Json.JsonSerializer.Deserialize<CEBAS.Application.Contracts.Events.PostDeletedPayload>(payloadJson, JsonOptions);
+                    var postId = postDeleted != null ? postDeleted.PostId : evt.AggregateId;
+                    await trendingIngestion.ReconcilePostDeletedAsync(postId, cancellationToken);
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to project outbox event {EventId} ({EventType}) to trending ingestion service", evt.Id, evt.EventType);
         }
     }
 }
