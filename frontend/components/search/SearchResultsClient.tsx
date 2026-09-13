@@ -113,7 +113,11 @@ export function SearchResultsClient() {
       ) : (
         <>
           {activeTab === "semua" && (
-            <TabSemua query={query} onNavigateToTab={handleTabChange} />
+            <TabSemua
+              query={query}
+              onNavigateToTab={handleTabChange}
+              currentUserId={currentUser?.id}
+            />
           )}
           {activeTab === "celotehan" && <TabCelotehan query={query} />}
           {activeTab === "akun" && <TabAkun query={query} currentUserId={currentUser?.id} />}
@@ -129,9 +133,11 @@ export function SearchResultsClient() {
 function TabSemua({
   query,
   onNavigateToTab,
+  currentUserId,
 }: {
   query: string;
   onNavigateToTab: (tab: SearchTab) => void;
+  currentUserId?: string;
 }) {
   const { data, isLoading, isError, error, refetch } = useSearchSummary(query);
 
@@ -254,6 +260,10 @@ function TabCelotehan({ query }: { query: string }) {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  const handleRetryNextPage = () => {
+    void fetchNextPage();
+  };
+
   if (isLoading) {
     return <SearchSkeleton />;
   }
@@ -275,7 +285,7 @@ function TabCelotehan({ query }: { query: string }) {
       {isFetchNextPageError && (
         <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-center space-y-2">
           <p className="text-xs text-destructive">Gagal memuat celotehan berikutnya</p>
-          <Button size="sm" variant="outline" onClick={() => fetchNextPage()}>
+          <Button size="sm" variant="outline" onClick={handleRetryNextPage}>
             <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
             Coba Lagi
           </Button>
@@ -406,7 +416,9 @@ function UserResultRow({
   showBio?: boolean;
   currentUserId?: string;
 }) {
-  const isSelf = currentUserId === user.id;
+  const { user: currentUser } = useAuth();
+  const effectiveUserId = currentUserId ?? currentUser?.id;
+  const isSelf = effectiveUserId === user.id;
 
   return (
     <div className="flex items-start justify-between p-4 space-x-3 hover:bg-muted/30 transition">

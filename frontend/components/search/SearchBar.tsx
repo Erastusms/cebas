@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Search, X, Loader2, User, CheckCircle2, ArrowRight } from "lucide-react";
 import { useSearchAutocomplete } from "../../hooks/useSearch";
@@ -19,6 +19,8 @@ export function SearchBar({
   onSearchSubmitted,
 }: SearchBarProps) {
   const router = useRouter();
+  const pathname = usePathname() ?? "";
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState(initialQuery);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
@@ -27,13 +29,25 @@ export function SearchBar({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { data: users, isLoading, isError } = useSearchAutocomplete(query, isOpen);
+  const hasUsers = Array.isArray(users) && users.length > 0;
 
-  // Sync initialQuery if changed externally
+  // Sync with route / pathname:
+  // If user navigates away from /search (or is not on /search), clear the query.
+  // If user is on /search, sync with URL query param ?q= or initialQuery
   useEffect(() => {
-    if (initialQuery !== undefined) {
-      setQuery(initialQuery);
+    if (pathname !== "/search") {
+      setQuery("");
+      setIsOpen(false);
+      setSelectedIndex(-1);
+    } else {
+      const q = searchParams ? searchParams.get("q") ?? "" : "";
+      if (initialQuery !== undefined && initialQuery !== "") {
+        setQuery(initialQuery);
+      } else if (q) {
+        setQuery(q);
+      }
     }
-  }, [initialQuery]);
+  }, [pathname, searchParams, initialQuery]);
 
   // Handle outside click & Escape key
   useEffect(() => {
@@ -110,7 +124,6 @@ export function SearchBar({
           role="searchbox"
           aria-label="Cari di CEBAS"
           aria-autocomplete="list"
-          aria-expanded={isOpen}
           placeholder="Cari celotehan, akun, atau topik..."
           value={query}
           onChange={(e) => {
@@ -147,7 +160,7 @@ export function SearchBar({
           className="absolute left-0 right-0 top-full mt-2 rounded-2xl border border-border bg-popover p-1.5 shadow-xl backdrop-blur animate-in fade-in-50 zoom-in-95 z-50 overflow-hidden"
         >
           {/* Autocomplete User Account Results */}
-          {users && users.length > 0 && (
+          {hasUsers && (
             <div className="space-y-0.5">
               <div className="px-3 py-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                 Akun
@@ -210,7 +223,7 @@ export function SearchBar({
           )}
 
           {/* Autocomplete Loading / Error States */}
-          {isLoading && (!users || users.length === 0) && (
+          {isLoading && !hasUsers && (
             <div className="flex items-center justify-center py-4 text-xs text-muted-foreground space-x-2">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
               <span>Mencari...</span>

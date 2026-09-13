@@ -65,7 +65,9 @@ export function Navbar() {
 
         {/* Universal Search Bar in Header */}
         <div className="hidden sm:flex flex-1 max-w-md mx-2 lg:mx-6">
-          <SearchBar />
+          <React.Suspense fallback={<div className="h-9 w-full rounded-full bg-muted/20 animate-pulse" />}>
+            <SearchBar />
+          </React.Suspense>
         </div>
 
         {/* Action Controls / Auth Status */}

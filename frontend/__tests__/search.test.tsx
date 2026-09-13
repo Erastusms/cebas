@@ -4,16 +4,21 @@ import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SearchHighlight } from "../components/search/SearchHighlight";
 import { SearchBar } from "../components/search/SearchBar";
+import { SearchResultsClient } from "../components/search/SearchResultsClient";
 import { searchApi } from "../lib/api/search";
 import { apiClient } from "../lib/api/client";
 
 // Mock next/navigation
 const mockPush = vi.fn();
+let mockPathname = "/search";
+let mockSearchParams = new URLSearchParams("q=test&tab=semua");
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: mockPush,
   }),
-  useSearchParams: () => new URLSearchParams("q=test&tab=semua"),
+  usePathname: () => mockPathname,
+  useSearchParams: () => mockSearchParams,
 }));
 
 // Mock useAuth
@@ -29,6 +34,8 @@ describe("Phase 11 Search Subsystem Frontend Tests", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPathname = "/search";
+    mockSearchParams = new URLSearchParams("q=test&tab=semua");
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
@@ -163,6 +170,78 @@ describe("Phase 11 Search Subsystem Frontend Tests", () => {
       fireEvent.keyDown(input, { key: "Enter" });
 
       expect(mockPush).toHaveBeenCalledWith("/search?q=golang");
+    });
+
+    it("should clear search field when user leaves /search page", () => {
+      mockPathname = "/search";
+      mockSearchParams = new URLSearchParams("q=extratime");
+
+      const { rerender } = renderWithProvider(<SearchBar initialQuery="extratime" />);
+      const input = screen.getByRole("searchbox") as HTMLInputElement;
+      expect(input.value).toBe("extratime");
+
+      // User navigates to Linimasa /home
+      mockPathname = "/home";
+      mockSearchParams = new URLSearchParams("");
+
+      rerender(
+        <QueryClientProvider client={queryClient}>
+          <SearchBar />
+        </QueryClientProvider>
+      );
+
+      expect(input.value).toBe("");
+    });
+  });
+
+  describe("SearchResultsClient Component", () => {
+    it("should render combined 'Semua' tab with users and posts without ReferenceError", async () => {
+      vi.spyOn(searchApi, "searchSummary").mockResolvedValueOnce({
+        success: true,
+        data: {
+          posts: [
+            {
+              id: "post-1",
+              content: "Hello world extratime discussion",
+              highlightedContent: "Hello world <mark>extratime</mark> discussion",
+              author: {
+                id: "author-1",
+                username: "author1",
+                displayName: "Author One",
+                avatarUrl: null,
+                isVerified: false,
+              },
+              replyCount: 0,
+              likeCount: 5,
+              bookmarkCount: 1,
+              createdAt: "2026-09-11T10:00:00Z",
+            },
+          ],
+          users: [
+            {
+              id: "user-extratime",
+              username: "extratime",
+              displayName: "Extra Time ID",
+              highlightedUsername: "<mark>extratime</mark>",
+              highlightedDisplayName: "Extra Time ID",
+              avatarUrl: null,
+              bio: "Seputar sepak bola",
+              highlightedBio: "Seputar sepak bola",
+              isVerified: true,
+              followerCount: 100,
+              isFollowing: false,
+            },
+          ],
+        },
+      });
+
+      renderWithProvider(<SearchResultsClient />);
+
+      // Should render the user and post cleanly without crashing
+      await waitFor(() => {
+        expect(screen.getByText("Extra Time ID")).toBeDefined();
+        expect(screen.getByText(/Hello world/i)).toBeDefined();
+      });
     });
   });
 });
